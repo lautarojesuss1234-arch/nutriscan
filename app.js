@@ -3,6 +3,13 @@ const STORAGE = {
   goals: 'nutriscan_goals',
 };
 
+const GEMINI_MODELS = [
+  'gemini-3.5-flash',
+  'gemini-2.5-flash',
+  'gemini-2.5-flash-lite',
+  'gemini-flash-latest',
+];
+
 const DEFAULT_GOALS = {
   calories: 2200,
   protein: 120,
@@ -43,6 +50,7 @@ const elements = {
   calorieRing: $('#calorieRing'),
   calorieValue: $('#calorieValue'),
   mealNotes: $('#mealNotes'),
+  foodReview: $('#foodReview'),
   proteinValue: $('#proteinValue'),
   carbsValue: $('#carbsValue'),
   fatsValue: $('#fatsValue'),
@@ -243,53 +251,78 @@ async function analyzeCurrentImage() {
 }
 
 async function callGemini(apiKey, image) {
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
-  const prompt = `Analiza la imagen de comida y devuelve únicamente JSON válido, sin markdown, sin texto adicional y sin unidades en los números. Si no puedes identificar con certeza, usa el plato más probable y baja el campo confidence. Esquema exacto requerido: {"dish_name":"string","calories":number,"protein_g":number,"fat_g":number,"carbs_g":number,"confidence":number,"notes":"string"}. calories debe ser kcal estimadas; protein_g, fat_g y carbs_g deben ser gramos estimados para la porción visible. confidence debe estar entre 0 y 1.`;
+  const prompt = `Analiza la imagen de comida y devuelve únicamente JSON válido, sin markdown, sin texto adicional y sin unidades en los números. Si no puedes identificar con certeza, usa el plato más probable y baja el campo confidence. Esquema exacto requerido: {"dish_name":"string","calories":number,"protein_g":number,"fat_g":number,"carbs_g":number,"confidence":number,"notes":"string","review":"string"}. calories debe ser kcal estimadas; protein_g, fat_g y carbs_g deben ser gramos estimados para la porción visible. confidence debe estar entre 0 y 1. notes debe explicar brevemente la incertidumbre de la estimación. review debe ser una reseña nutricional y gastronómica breve en español rioplatense/neutro, de 1 a 2 frases, útil y amable, mencionando balance, porción o una mejora posible sin juzgar.`;
 
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            { text: prompt },
-            {
-              inline_data: {
-                mime_type: image.mimeType,
-                data: image.base64,
+  let lastError = null;
+
+  for (const model of GEMINI_MODELS) {
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              { text: prompt },
+              {
+                inline_data: {
+                  mime_type: image.mimeType,
+                  data: image.base64,
+                },
               },
-            },
-          ],
+            ],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.25,
+          topP: 0.85,
+          topK: 32,
+          responseMimeType: 'application/json',
         },
-      ],
-      generationConfig: {
-        temperature: 0.2,
-        topP: 0.8,
-        topK: 32,
-        responseMimeType: 'application/json',
-      },
-    }),
-  });
+      }),
+    });
 
-  const payload = await response.json().catch(() => ({}));
+    const payload = await response.json().catch(() => ({}));
 
-  if (!response.ok) {
-    const message = payload?.error?.message || `Error ${response.status} al llamar a Gemini.`;
-    throw new Error(message);
+    if (!response.ok) {
+      const message = payload?.error?.message || `Error ${response.status} al llamar a Gemini.`;
+      lastError = new Error(`${model}: ${message}`);
+
+      if (shouldTryNextModel(response.status, message)) {
+        console.warn(`Modelo no disponible, probando fallback: ${model}`, message);
+        continue;
+      }
+
+      throw lastError;
+    }
+
+    const text = payload?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!text) {
+      lastError = new Error(`${model}: Gemini no devolvió un resultado interpretable.`);
+      continue;
+    }
+
+    const parsed = parseGeminiJson(text);
+    parsed.model_used = model;
+    return parsed;
   }
 
-  const text = payload?.candidates?.[0]?.content?.parts?.[0]?.text;
+  throw lastError || new Error('No se encontró un modelo Gemini compatible para esta API Key.');
+}
 
-  if (!text) {
-    throw new Error('Gemini no devolvió un resultado interpretable.');
-  }
+function shouldTryNextModel(status, message) {
+  const retryableModelProblem = /not found|not supported|permission|not available|does not exist|is not supported/i.test(message);
+  return [400, 403, 404].includes(status) && retryableModelProblem;
+}
 
+function parseGeminiJson(text) {
   try {
     return JSON.parse(text);
   } catch (error) {
-    const cleaned = text.replace(/^```json/i, '').replace(/```$/i, '').trim();
+    const cleaned = text.replace(/^```json/i, '').replace(/^```/i, '').replace(/```$/i, '').trim();
     return JSON.parse(cleaned);
   }
 }
@@ -310,6 +343,8 @@ function normalizeGeminiResult(raw) {
     fats: roundMacro(fats),
     confidence,
     notes: String(raw.notes ?? 'Estimación generada por IA; puede variar según porción e ingredientes.').trim(),
+    review: String(raw.review ?? raw.food_review ?? raw.reseña ?? raw.resena ?? 'Buena referencia para registrar tu comida; la IA recomienda revisar porción e ingredientes si querés mayor precisión.').trim(),
+    modelUsed: String(raw.model_used ?? '').trim(),
     photoDataUrl: state.compressedImage?.dataUrl || '',
     createdAt: new Date().toISOString(),
   };
@@ -329,12 +364,15 @@ function renderResult(result) {
   elements.resultEmpty.classList.add('hidden');
   elements.resultPanel.classList.remove('hidden');
   elements.mealName.textContent = result.dishName;
-  elements.confidenceChip.textContent = `${Math.round(result.confidence * 100)}% confianza`;
+  elements.confidenceChip.textContent = result.modelUsed
+    ? `${Math.round(result.confidence * 100)}% · ${result.modelUsed.replace('gemini-', '')}`
+    : `${Math.round(result.confidence * 100)}% confianza`;
   elements.calorieValue.textContent = String(result.calories);
   elements.proteinValue.textContent = `${formatNumber(result.protein)} g`;
   elements.carbsValue.textContent = `${formatNumber(result.carbs)} g`;
   elements.fatsValue.textContent = `${formatNumber(result.fats)} g`;
   elements.mealNotes.textContent = result.notes;
+  elements.foodReview.textContent = result.review;
 
   const goals = getGoals();
   const degrees = Math.min(360, Math.round((result.calories / goals.calories) * 360));
@@ -479,6 +517,7 @@ function renderMealList(meals) {
       <div class="meal-meta">
         <h4>${escapeHtml(meal.dishName)}</h4>
         <p>${formatTime(meal.createdAt)} · ${Math.round(meal.calories)} kcal</p>
+        ${meal.review ? `<p class="meal-review">${escapeHtml(meal.review)}</p>` : ''}
         <div class="meal-macros">
           <span>P ${formatNumber(meal.protein)} g</span>
           <span>C ${formatNumber(meal.carbs)} g</span>

@@ -1,6 +1,6 @@
 # NutriScan
 
-**NutriScan** es una PWA de seguimiento nutricional que permite tomar o subir una foto de una comida, analizarla con Gemini 1.5 Flash y guardar el resultado en el historial diario del navegador. La app está pensada para uso personal, con diseño oscuro, mobile-first y almacenamiento local.
+**NutriScan** es una PWA de seguimiento nutricional que permite tomar o subir una foto de una comida, analizarla con Gemini 3.5 Flash —con fallback automático a modelos Flash compatibles si la API Key aún no lo tiene habilitado— y guardar el resultado en el historial diario del navegador. La app está pensada para uso personal, con diseño oscuro, mobile-first y almacenamiento local.
 
 > La API Key no está incluida en el código fuente. Cada usuario debe configurarla desde la vista **Ajustes**, donde se guarda únicamente en `localStorage` bajo la clave `nutriscan_api_key`.
 
@@ -8,8 +8,8 @@
 
 | Área | Qué hace |
 | --- | --- |
-| Escáner | Permite abrir cámara, subir una foto, comprimir la imagen localmente y enviarla a Gemini para estimar calorías y macronutrientes. |
-| Historial | Guarda comidas por fecha con la clave `nutriscan_day_YYYY-MM-DD`, incluyendo foto comprimida, hora, calorías, proteínas, carbohidratos y grasas. |
+| Escáner | Permite abrir cámara, subir una foto, comprimir la imagen localmente y enviarla a Gemini para estimar calorías, macronutrientes y una reseña breve de la comida. |
+| Historial | Guarda comidas por fecha con la clave `nutriscan_day_YYYY-MM-DD`, incluyendo foto comprimida, hora, calorías, proteínas, carbohidratos, grasas y reseña generada por IA. |
 | Dashboard | Muestra anillo de calorías, barras de macros y lista de comidas del día seleccionado. |
 | Ajustes | Permite guardar o eliminar la API Key y personalizar objetivos diarios. |
 | PWA | Incluye `manifest.json`, iconos y `sw.js` para instalación y cacheo básico offline. |

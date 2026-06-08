@@ -50,7 +50,7 @@
           <article class="glass-card scanner-card">
             <div class="section-heading">
               <div>
-                <p class="eyebrow">Escáner con Gemini 1.5 Flash</p>
+                <p class="eyebrow">Escáner con Gemini 3.5 Flash</p>
                 <h2>Analiza tu plato desde una foto</h2>
               </div>
               <span class="status-pill" id="apiStatus">Sin API</span>
@@ -110,6 +110,10 @@
                   <small>kcal</small>
                 </div>
                 <p id="mealNotes">Revisa la estimación y guárdala en tu historial.</p>
+              </div>
+              <div class="ai-review-card">
+                <span>Reseña IA</span>
+                <p id="foodReview">La IA agregará una reseña breve sobre la comida detectada.</p>
               </div>
               <div class="macro-grid">
                 <div class="macro-card protein">
@@ -190,7 +194,7 @@
                 <h2>Configura Gemini</h2>
               </div>
             </div>
-            <p class="body-copy">Tu API Key no se incluye en el código fuente. Se guarda únicamente en el almacenamiento local de este navegador bajo la clave <strong>nutriscan_api_key</strong>.</p>
+            <p class="body-copy">Tu API Key no se incluye en el código fuente. Se guarda únicamente en el almacenamiento local de este navegador bajo la clave <strong>nutriscan_api_key</strong>. La app intenta usar primero <strong>Gemini 3.5 Flash</strong> y, si tu cuenta aún no lo tiene habilitado, baja automáticamente a modelos Flash compatibles.</p>
             <form id="apiForm" class="settings-form">
               <label for="apiKeyInput">API Key de Google AI Studio</label>
               <div class="secret-field">
