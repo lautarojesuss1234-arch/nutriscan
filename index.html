@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#06130f" />
+  <meta name="description" content="NutriScan: escanea comidas con IA, guarda fotos y revisa tu historial nutricional diario desde el navegador." />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="NutriScan" />
+  <title>NutriScan | Diario nutricional con IA</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="hero" aria-labelledby="app-title">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <span></span>
+        </div>
+        <div>
+          <p class="eyebrow">Diario nutricional inteligente</p>
+          <h1 id="app-title">NutriScan</h1>
+        </div>
+      </div>
+      <button class="install-button hidden" id="installButton" type="button">Instalar app</button>
+    </header>
+
+    <main>
+      <nav class="tabbar" aria-label="Vistas principales">
+        <button class="tab-button active" type="button" data-tab="scanner" aria-controls="scanner" aria-selected="true">
+          <span class="tab-icon" aria-hidden="true">⌁</span>
+          <span>Escáner</span>
+        </button>
+        <button class="tab-button" type="button" data-tab="dashboard" aria-controls="dashboard" aria-selected="false">
+          <span class="tab-icon" aria-hidden="true">◌</span>
+          <span>Historial</span>
+        </button>
+        <button class="tab-button" type="button" data-tab="settings" aria-controls="settings" aria-selected="false">
+          <span class="tab-icon" aria-hidden="true">⚙</span>
+          <span>Ajustes</span>
+        </button>
+      </nav>
+
+      <section class="view active" id="scanner" role="tabpanel" aria-labelledby="scanner-tab">
+        <div class="scanner-grid">
+          <article class="glass-card scanner-card">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Escáner con Gemini 1.5 Flash</p>
+                <h2>Analiza tu plato desde una foto</h2>
+              </div>
+              <span class="status-pill" id="apiStatus">Sin API</span>
+            </div>
+
+            <div class="api-lock" id="apiLock" role="status">
+              <strong>Configura tu API Key primero.</strong>
+              <span>Ve a Ajustes, pega tu clave de Google AI Studio y vuelve a escanear.</span>
+              <button class="secondary-button" type="button" data-go-settings>Ir a Ajustes</button>
+            </div>
+
+            <div class="upload-zone" id="dropZone">
+              <input id="cameraInput" class="sr-only" type="file" accept="image/*" capture="environment" />
+              <input id="fileInput" class="sr-only" type="file" accept="image/*" />
+              <div class="preview-frame" id="previewFrame">
+                <img id="imagePreview" alt="Vista previa de la comida seleccionada" class="hidden" />
+                <div class="empty-preview" id="emptyPreview">
+                  <span class="scan-glyph" aria-hidden="true"></span>
+                  <p>Sube o toma una foto de tu comida.</p>
+                  <small>La imagen se comprime localmente antes de enviarse.</small>
+                </div>
+              </div>
+              <div class="action-row">
+                <button class="primary-button" type="button" id="cameraButton">Abrir cámara</button>
+                <button class="secondary-button" type="button" id="uploadButton">Subir archivo</button>
+              </div>
+              <p class="microcopy" id="compressionInfo">Aún no se seleccionó ninguna imagen.</p>
+            </div>
+
+            <button class="analyze-button" type="button" id="analyzeButton" disabled>
+              <span>Analizar con IA</span>
+              <span class="button-loader hidden" aria-hidden="true"></span>
+            </button>
+          </article>
+
+          <article class="glass-card result-card" aria-live="polite">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">Resultado</p>
+                <h2>Estimación nutricional</h2>
+              </div>
+            </div>
+            <div class="result-empty" id="resultEmpty">
+              <p>Cuando analices una comida, aquí aparecerán el nombre del plato, calorías y macros.</p>
+            </div>
+            <div class="result-panel hidden" id="resultPanel">
+              <div class="meal-title-row">
+                <div>
+                  <p class="eyebrow">Plato detectado</p>
+                  <h3 id="mealName">Comida</h3>
+                </div>
+                <span class="confidence-chip" id="confidenceChip">IA</span>
+              </div>
+              <div class="calorie-meter">
+                <div class="ring" id="calorieRing" style="--progress: 0deg">
+                  <span id="calorieValue">0</span>
+                  <small>kcal</small>
+                </div>
+                <p id="mealNotes">Revisa la estimación y guárdala en tu historial.</p>
+              </div>
+              <div class="macro-grid">
+                <div class="macro-card protein">
+                  <span>Proteínas</span>
+                  <strong id="proteinValue">0 g</strong>
+                </div>
+                <div class="macro-card carbs">
+                  <span>Carbohidratos</span>
+                  <strong id="carbsValue">0 g</strong>
+                </div>
+                <div class="macro-card fats">
+                  <span>Grasas</span>
+                  <strong id="fatsValue">0 g</strong>
+                </div>
+              </div>
+              <div class="action-row">
+                <button class="primary-button" type="button" id="saveMealButton">Guardar comida</button>
+                <button class="ghost-button" type="button" id="discardResultButton">Descartar</button>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="view" id="dashboard" role="tabpanel" aria-labelledby="dashboard-tab">
+        <article class="glass-card dashboard-card">
+          <div class="section-heading dashboard-heading">
+            <div>
+              <p class="eyebrow">Historial local</p>
+              <h2>Lo que comiste por día</h2>
+            </div>
+            <label class="date-control" for="historyDate">
+              <span>Día</span>
+              <input id="historyDate" type="date" />
+            </label>
+          </div>
+
+          <div class="week-strip" id="weekStrip" aria-label="Accesos rápidos de la semana"></div>
+
+          <div class="summary-grid">
+            <div class="summary-ring-card">
+              <div class="ring big" id="dailyCalorieRing" style="--progress: 0deg">
+                <span id="dailyCalories">0</span>
+                <small>kcal</small>
+              </div>
+              <p id="dailySummaryText">Selecciona un día para ver el resumen.</p>
+            </div>
+            <div class="macro-summary">
+              <div class="progress-item">
+                <div class="progress-label"><span>Proteínas</span><strong id="dailyProtein">0 g</strong></div>
+                <div class="progress-track"><span id="proteinBar"></span></div>
+              </div>
+              <div class="progress-item">
+                <div class="progress-label"><span>Carbohidratos</span><strong id="dailyCarbs">0 g</strong></div>
+                <div class="progress-track"><span id="carbsBar"></span></div>
+              </div>
+              <div class="progress-item">
+                <div class="progress-label"><span>Grasas</span><strong id="dailyFats">0 g</strong></div>
+                <div class="progress-track"><span id="fatsBar"></span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="meal-list-header">
+            <h3>Comidas guardadas</h3>
+            <button class="ghost-button danger" type="button" id="clearDayButton">Borrar día</button>
+          </div>
+          <div class="meal-list" id="mealList"></div>
+        </article>
+      </section>
+
+      <section class="view" id="settings" role="tabpanel" aria-labelledby="settings-tab">
+        <div class="settings-grid">
+          <article class="glass-card settings-card">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">Privacidad y API</p>
+                <h2>Configura Gemini</h2>
+              </div>
+            </div>
+            <p class="body-copy">Tu API Key no se incluye en el código fuente. Se guarda únicamente en el almacenamiento local de este navegador bajo la clave <strong>nutriscan_api_key</strong>.</p>
+            <form id="apiForm" class="settings-form">
+              <label for="apiKeyInput">API Key de Google AI Studio</label>
+              <div class="secret-field">
+                <input id="apiKeyInput" type="password" autocomplete="off" placeholder="Pega tu API Key aquí" />
+                <button class="ghost-button" type="button" id="toggleApiVisibility">Ver</button>
+              </div>
+              <div class="action-row">
+                <button class="primary-button" type="submit">Guardar API Key</button>
+                <button class="secondary-button danger" type="button" id="deleteApiKeyButton">Eliminar key</button>
+              </div>
+              <p class="microcopy" id="apiFormStatus">La app funciona sin servidor propio: la llamada a Gemini sale desde tu navegador.</p>
+            </form>
+          </article>
+
+          <article class="glass-card settings-card">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">Objetivos diarios</p>
+                <h2>Personaliza tus metas</h2>
+              </div>
+            </div>
+            <form id="goalsForm" class="settings-form goals-form">
+              <label for="goalCalories">Calorías diarias</label>
+              <input id="goalCalories" type="number" min="1" step="1" inputmode="numeric" />
+              <label for="goalProtein">Proteínas (g)</label>
+              <input id="goalProtein" type="number" min="1" step="1" inputmode="numeric" />
+              <label for="goalCarbs">Carbohidratos (g)</label>
+              <input id="goalCarbs" type="number" min="1" step="1" inputmode="numeric" />
+              <label for="goalFats">Grasas (g)</label>
+              <input id="goalFats" type="number" min="1" step="1" inputmode="numeric" />
+              <button class="primary-button" type="submit">Guardar objetivos</button>
+              <p class="microcopy" id="goalsFormStatus">Estos objetivos solo afectan los anillos y barras del historial.</p>
+            </form>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
+  </div>
+
+  <canvas id="compressionCanvas" class="sr-only" aria-hidden="true"></canvas>
+  <script src="app.js" defer></script>
+</body>
+</html>
