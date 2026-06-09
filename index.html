@@ -9,10 +9,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="NutriScan" />
   <title>NutriScan | Diario nutricional con IA</title>
-  <link rel="manifest" href="manifest.json?v=20260608-cachefix" />
-  <link rel="icon" href="icons/icon.svg?v=20260608-cachefix" type="image/svg+xml" />
-  <link rel="apple-touch-icon" href="icons/icon-192.png?v=20260608-cachefix" />
-  <link rel="stylesheet" href="styles.css?v=20260608-cachefix" />
+  <link rel="manifest" href="manifest.json?v=20260609-profile" />
+  <link rel="icon" href="icons/icon.svg?v=20260609-profile" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png?v=20260609-profile" />
+  <link rel="stylesheet" href="styles.css?v=20260609-profile" />
 </head>
 <body>
   <div class="app-shell">
@@ -38,6 +38,10 @@
         <button class="tab-button" type="button" data-tab="dashboard" aria-controls="dashboard" aria-selected="false">
           <span class="tab-icon" aria-hidden="true">◌</span>
           <span>Historial</span>
+        </button>
+        <button class="tab-button" type="button" data-tab="profile" aria-controls="profile" aria-selected="false">
+          <span class="tab-icon" aria-hidden="true">◍</span>
+          <span>Perfil</span>
         </button>
         <button class="tab-button" type="button" data-tab="settings" aria-controls="settings" aria-selected="false">
           <span class="tab-icon" aria-hidden="true">⚙</span>
@@ -78,6 +82,11 @@
                 <button class="secondary-button" type="button" id="uploadButton">Subir archivo</button>
               </div>
               <p class="microcopy" id="compressionInfo">Aún no se seleccionó ninguna imagen.</p>
+              <label class="context-field" for="mealContext">
+                <span>Detalles opcionales para mejorar precisión</span>
+                <textarea id="mealContext" rows="3" placeholder="Ej.: empanadas de carne, 2 unidades, al horno; arroz con pollo; milanesa frita."></textarea>
+                <small>Si la foto no muestra relleno, ingredientes o porción, escribilo acá para que la IA estime mejor.</small>
+              </label>
             </div>
 
             <button class="analyze-button" type="button" id="analyzeButton" disabled>
@@ -160,21 +169,30 @@
                 <small>kcal</small>
               </div>
               <p id="dailySummaryText">Selecciona un día para ver el resumen.</p>
+              <span class="target-line" id="dailyTargetLine">Meta: completa tu perfil para personalizarla.</span>
             </div>
             <div class="macro-summary">
               <div class="progress-item">
-                <div class="progress-label"><span>Proteínas</span><strong id="dailyProtein">0 g</strong></div>
+                <div class="progress-label"><span>Proteínas</span><strong><span id="dailyProtein">0 g</span> / <span id="targetProtein">0 g</span></strong></div>
                 <div class="progress-track"><span id="proteinBar"></span></div>
               </div>
               <div class="progress-item">
-                <div class="progress-label"><span>Carbohidratos</span><strong id="dailyCarbs">0 g</strong></div>
+                <div class="progress-label"><span>Carbohidratos</span><strong><span id="dailyCarbs">0 g</span> / <span id="targetCarbs">0 g</span></strong></div>
                 <div class="progress-track"><span id="carbsBar"></span></div>
               </div>
               <div class="progress-item">
-                <div class="progress-label"><span>Grasas</span><strong id="dailyFats">0 g</strong></div>
+                <div class="progress-label"><span>Grasas</span><strong><span id="dailyFats">0 g</span> / <span id="targetFats">0 g</span></strong></div>
                 <div class="progress-track"><span id="fatsBar"></span></div>
               </div>
             </div>
+          </div>
+
+          <div class="goal-comparison-card" id="goalComparisonCard">
+            <div>
+              <span>Comparación nutricional</span>
+              <strong id="calorieDelta">Completa tu perfil</strong>
+            </div>
+            <p id="comparisonAdvice">Cuando cargues tu perfil, acá vas a ver cuánto te falta o cuánto te pasaste respecto de tus calorías y macros recomendados.</p>
           </div>
 
           <div class="meal-list-header">
@@ -183,6 +201,83 @@
           </div>
           <div class="meal-list" id="mealList"></div>
         </article>
+      </section>
+
+
+      <section class="view" id="profile" role="tabpanel" aria-labelledby="profile-tab">
+        <div class="settings-grid profile-grid">
+          <article class="glass-card settings-card">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">Perfil nutricional</p>
+                <h2>Calcula tu objetivo diario</h2>
+              </div>
+            </div>
+            <p class="body-copy">Completá tus datos para que NutriScan estime tu gasto diario, ajuste calorías según tu meta y calcule macros de referencia. Es una guía práctica y no reemplaza una consulta médica o nutricional.</p>
+            <form id="profileForm" class="settings-form profile-form">
+              <label for="profileAge">Edad</label>
+              <input id="profileAge" type="number" min="12" max="100" step="1" inputmode="numeric" placeholder="Ej.: 25" />
+
+              <label for="profileSex">Sexo biológico para la fórmula</label>
+              <select id="profileSex">
+                <option value="male">Masculino</option>
+                <option value="female">Femenino</option>
+                <option value="other">Prefiero no especificar / promedio</option>
+              </select>
+
+              <label for="profileHeight">Altura (cm)</label>
+              <input id="profileHeight" type="number" min="120" max="230" step="1" inputmode="numeric" placeholder="Ej.: 175" />
+
+              <label for="profileWeight">Peso actual (kg)</label>
+              <input id="profileWeight" type="number" min="35" max="250" step="0.1" inputmode="decimal" placeholder="Ej.: 78" />
+
+              <label for="profileActivity">Actividad diaria</label>
+              <select id="profileActivity">
+                <option value="1.2">Sedentario: poco movimiento</option>
+                <option value="1.375">Ligero: 1 a 3 entrenamientos por semana</option>
+                <option value="1.55">Moderado: 3 a 5 entrenamientos por semana</option>
+                <option value="1.725">Activo: 6 o más entrenamientos por semana</option>
+              </select>
+
+              <label for="profileGoal">Qué querés lograr</label>
+              <select id="profileGoal">
+                <option value="lose_fat">Bajar peso / perder grasa</option>
+                <option value="recompose">Perder grasa y mantener músculo</option>
+                <option value="maintain">Mantener peso y mejorar hábitos</option>
+                <option value="gain_muscle">Ganar músculo con mínimo exceso</option>
+                <option value="gain_weight">Subir peso</option>
+              </select>
+
+              <button class="primary-button" type="submit">Calcular y guardar objetivo</button>
+              <p class="microcopy" id="profileFormStatus">Tus datos se guardan solo en este navegador y sirven para comparar el historial diario.</p>
+            </form>
+          </article>
+
+          <article class="glass-card settings-card profile-summary-card">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">Recomendación</p>
+                <h2>Tu guía diaria</h2>
+              </div>
+            </div>
+            <div class="recommendation-panel" id="profileRecommendation">
+              <div class="ring big" id="profileCalorieRing" style="--progress: 270deg">
+                <span id="profileCalories">0</span>
+                <small>kcal</small>
+              </div>
+              <p id="profileSummaryText">Completá el formulario para generar una recomendación personalizada.</p>
+            </div>
+            <div class="macro-grid profile-macro-grid">
+              <div class="macro-card protein"><span>Proteínas</span><strong id="profileProtein">0 g</strong></div>
+              <div class="macro-card carbs"><span>Carbohidratos</span><strong id="profileCarbs">0 g</strong></div>
+              <div class="macro-card fats"><span>Grasas</span><strong id="profileFats">0 g</strong></div>
+            </div>
+            <div class="ai-review-card nutritionist-note">
+              <span>Nota profesional</span>
+              <p id="profileAdvice">La meta se calcula con Mifflin-St Jeor y factores de actividad. Ajustá según evolución real, energía, hambre, rendimiento y recomendación profesional.</p>
+            </div>
+          </article>
+        </div>
       </section>
 
       <section class="view" id="settings" role="tabpanel" aria-labelledby="settings-tab">
@@ -212,10 +307,11 @@
           <article class="glass-card settings-card">
             <div class="section-heading compact">
               <div>
-                <p class="eyebrow">Objetivos diarios</p>
-                <h2>Personaliza tus metas</h2>
+                <p class="eyebrow">Ajuste manual</p>
+                <h2>Editar metas avanzadas</h2>
               </div>
             </div>
+            <p class="body-copy">Si un nutricionista te dio valores concretos, podés sobrescribir las metas calculadas en Perfil.</p>
             <form id="goalsForm" class="settings-form goals-form">
               <label for="goalCalories">Calorías diarias</label>
               <input id="goalCalories" type="number" min="1" step="1" inputmode="numeric" />
@@ -225,8 +321,8 @@
               <input id="goalCarbs" type="number" min="1" step="1" inputmode="numeric" />
               <label for="goalFats">Grasas (g)</label>
               <input id="goalFats" type="number" min="1" step="1" inputmode="numeric" />
-              <button class="primary-button" type="submit">Guardar objetivos</button>
-              <p class="microcopy" id="goalsFormStatus">Estos objetivos solo afectan los anillos y barras del historial.</p>
+              <button class="primary-button" type="submit">Guardar objetivos manuales</button>
+              <p class="microcopy" id="goalsFormStatus">Estos objetivos afectan las comparaciones del historial.</p>
             </form>
           </article>
         </div>
@@ -237,6 +333,6 @@
   </div>
 
   <canvas id="compressionCanvas" class="sr-only" aria-hidden="true"></canvas>
-  <script src="app.js?v=20260608-cachefix" defer></script>
+  <script src="app.js?v=20260609-profile" defer></script>
 </body>
 </html>

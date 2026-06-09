@@ -10,7 +10,7 @@
 | --- | --- |
 | Escáner | Permite abrir cámara, subir una foto, comprimir la imagen localmente y enviarla a Gemini para estimar calorías, macronutrientes y una reseña breve de la comida. |
 | Historial | Guarda comidas por fecha con la clave `nutriscan_day_YYYY-MM-DD`, incluyendo foto comprimida, hora, calorías, proteínas, carbohidratos, grasas y reseña generada por IA. |
-| Dashboard | Muestra anillo de calorías, barras de macros y lista de comidas del día seleccionado. |
+| Dashboard comparativo | Muestra anillo de calorías, barras de macros y lista de comidas del día seleccionado. |
 | Ajustes | Permite guardar o eliminar la API Key y personalizar objetivos diarios. |
 | PWA | Incluye `manifest.json`, iconos y `sw.js` con versionado de recursos para instalación, uso offline básico y actualización más confiable en celulares. |
 
@@ -42,3 +42,8 @@ Las calorías y macronutrientes son estimaciones generadas por IA. Úsalas como 
 ## Despliegue
 
 Este proyecto es estático y funciona correctamente en GitHub Pages. Si actualizas archivos de la PWA, cambia también el token de versión usado en `index.html`, `app.js`, `manifest.json` y `sw.js` para evitar que celulares instalados conserven una versión vieja en caché.
+
+
+## Perfil y comparación diaria
+
+La versión actual agrega una pestaña **Perfil** donde se cargan edad, sexo para fórmula, altura, peso, actividad y objetivo corporal. La app estima calorías y macros mediante Mifflin-St Jeor, guarda todo en `localStorage` y compara cada día lo consumido contra la recomendación. El escáner también acepta detalles opcionales, como relleno o método de cocción, para mejorar el análisis de comidas ambiguas.

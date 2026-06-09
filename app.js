@@ -1,6 +1,7 @@
 const STORAGE = {
   apiKey: 'nutriscan_api_key',
   goals: 'nutriscan_goals',
+  profile: 'nutriscan_profile',
 };
 
 const GEMINI_MODEL_PREFERENCE = [
@@ -85,6 +86,27 @@ const elements = {
   goalsFormStatus: $('#goalsFormStatus'),
   toast: $('#toast'),
   installButton: $('#installButton'),
+  mealContext: $('#mealContext'),
+  dailyTargetLine: $('#dailyTargetLine'),
+  targetProtein: $('#targetProtein'),
+  targetCarbs: $('#targetCarbs'),
+  targetFats: $('#targetFats'),
+  calorieDelta: $('#calorieDelta'),
+  comparisonAdvice: $('#comparisonAdvice'),
+  profileForm: $('#profileForm'),
+  profileAge: $('#profileAge'),
+  profileSex: $('#profileSex'),
+  profileHeight: $('#profileHeight'),
+  profileWeight: $('#profileWeight'),
+  profileActivity: $('#profileActivity'),
+  profileGoal: $('#profileGoal'),
+  profileFormStatus: $('#profileFormStatus'),
+  profileCalories: $('#profileCalories'),
+  profileProtein: $('#profileProtein'),
+  profileCarbs: $('#profileCarbs'),
+  profileFats: $('#profileFats'),
+  profileSummaryText: $('#profileSummaryText'),
+  profileAdvice: $('#profileAdvice'),
 };
 
 document.addEventListener('DOMContentLoaded', init);
@@ -97,7 +119,9 @@ function init() {
   setupSettings();
   setupInstallPrompt();
   refreshApiState();
+  loadProfileIntoForm();
   loadGoalsIntoForm();
+  renderProfileSummary();
   renderDashboard();
 }
 
@@ -124,6 +148,10 @@ function activateTab(tabId) {
 
   if (tabId === 'dashboard') {
     renderDashboard();
+  }
+
+  if (tabId === 'profile') {
+    renderProfileSummary();
   }
 }
 
@@ -240,7 +268,7 @@ async function analyzeCurrentImage() {
   setBusy(true, 'Analizando con Gemini...');
 
   try {
-    const result = await callGemini(apiKey, state.compressedImage);
+    const result = await callGemini(apiKey, state.compressedImage, elements.mealContext?.value.trim() || '');
     const normalized = normalizeGeminiResult(result);
     state.currentResult = normalized;
     renderResult(normalized);
@@ -253,8 +281,11 @@ async function analyzeCurrentImage() {
   }
 }
 
-async function callGemini(apiKey, image) {
-  const prompt = `Analiza la imagen de comida y devuelve únicamente JSON válido, sin markdown, sin texto adicional y sin unidades en los números. Si no puedes identificar con certeza, usa el plato más probable y baja el campo confidence. Esquema exacto requerido: {"dish_name":"string","calories":number,"protein_g":number,"fat_g":number,"carbs_g":number,"confidence":number,"notes":"string","review":"string"}. calories debe ser kcal estimadas; protein_g, fat_g y carbs_g deben ser gramos estimados para la porción visible. confidence debe estar entre 0 y 1. notes debe explicar brevemente la incertidumbre de la estimación. review debe ser una reseña nutricional y gastronómica breve en español rioplatense/neutro, de 1 a 2 frases, útil y amable, mencionando balance, porción o una mejora posible sin juzgar.`;
+async function callGemini(apiKey, image, mealContext = '') {
+  const contextText = mealContext
+    ? `\nContexto aportado por el usuario: ${mealContext}. Usá este dato para identificar ingredientes, rellenos, cantidad o cocción que no sean visibles en la foto.`
+    : '';
+  const prompt = `Analiza la imagen de comida y devuelve únicamente JSON válido, sin markdown, sin texto adicional y sin unidades en los números.${contextText} Si no puedes identificar con certeza, usa el plato más probable y baja el campo confidence. Esquema exacto requerido: {"dish_name":"string","calories":number,"protein_g":number,"fat_g":number,"carbs_g":number,"confidence":number,"notes":"string","review":"string"}. calories debe ser kcal estimadas; protein_g, fat_g y carbs_g deben ser gramos estimados para la porción visible. confidence debe estar entre 0 y 1. notes debe explicar brevemente la incertidumbre de la estimación. review debe ser una reseña nutricional y gastronómica breve en español rioplatense/neutro, de 1 a 2 frases, útil y amable, mencionando balance, porción o una mejora posible sin juzgar.`;
 
   let lastError = null;
   const modelsToTry = await getAvailableGeminiModels(apiKey);
@@ -382,6 +413,7 @@ function normalizeGeminiResult(raw) {
     notes: String(raw.notes ?? 'Estimación generada por IA; puede variar según porción e ingredientes.').trim(),
     review: String(raw.review ?? raw.food_review ?? raw.reseña ?? raw.resena ?? 'Buena referencia para registrar tu comida; la IA recomienda revisar porción e ingredientes si querés mayor precisión.').trim(),
     modelUsed: String(raw.model_used ?? '').trim(),
+    context: elements.mealContext?.value.trim() || '',
     photoDataUrl: state.compressedImage?.dataUrl || '',
     createdAt: new Date().toISOString(),
   };
@@ -488,12 +520,19 @@ function renderDashboard() {
 
   const goals = getGoals();
   const calorieDegrees = Math.min(360, Math.round((totals.calories / goals.calories) * 360));
+  const calorieDiff = Math.round(goals.calories - totals.calories);
 
   elements.dailyCalorieRing.style.setProperty('--progress', `${calorieDegrees}deg`);
   elements.dailyCalories.textContent = String(Math.round(totals.calories));
   elements.dailyProtein.textContent = `${formatNumber(totals.protein)} g`;
   elements.dailyCarbs.textContent = `${formatNumber(totals.carbs)} g`;
   elements.dailyFats.textContent = `${formatNumber(totals.fats)} g`;
+  if (elements.dailyTargetLine) elements.dailyTargetLine.textContent = `Meta: ${Math.round(goals.calories)} kcal · P ${formatNumber(goals.protein)} g · C ${formatNumber(goals.carbs)} g · G ${formatNumber(goals.fats)} g`;
+  if (elements.targetProtein) elements.targetProtein.textContent = `${formatNumber(goals.protein)} g`;
+  if (elements.targetCarbs) elements.targetCarbs.textContent = `${formatNumber(goals.carbs)} g`;
+  if (elements.targetFats) elements.targetFats.textContent = `${formatNumber(goals.fats)} g`;
+  if (elements.calorieDelta) elements.calorieDelta.textContent = formatCalorieDelta(calorieDiff);
+  if (elements.comparisonAdvice) elements.comparisonAdvice.textContent = buildComparisonAdvice(totals, goals);
   elements.proteinBar.style.width = `${toPercent(totals.protein, goals.protein)}%`;
   elements.carbsBar.style.width = `${toPercent(totals.carbs, goals.carbs)}%`;
   elements.fatsBar.style.width = `${toPercent(totals.fats, goals.fats)}%`;
@@ -561,6 +600,7 @@ function renderMealList(meals) {
           <span>G ${formatNumber(meal.fats)} g</span>
         </div>
       </div>
+      ${meal.context ? `<p class="meal-context">Dato: ${escapeHtml(meal.context)}</p>` : ''}
       <button class="delete-meal-button" type="button" aria-label="Eliminar ${escapeHtml(meal.dishName)}">×</button>
     `;
 
@@ -609,6 +649,29 @@ function setupSettings() {
     showToast('API Key eliminada.');
   });
 
+
+
+  if (elements.profileForm) {
+    elements.profileForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const profile = readProfileForm();
+      const validation = validateProfile(profile);
+      if (validation) {
+        showToast(validation);
+        return;
+      }
+
+      const goals = calculateNutritionGoals(profile);
+      localStorage.setItem(STORAGE.profile, JSON.stringify({ ...profile, updatedAt: new Date().toISOString() }));
+      localStorage.setItem(STORAGE.goals, JSON.stringify(goals));
+      elements.profileFormStatus.textContent = 'Perfil guardado y objetivos diarios actualizados.';
+      loadGoalsIntoForm();
+      renderProfileSummary();
+      renderDashboard();
+      showToast('Perfil nutricional actualizado.');
+    });
+  }
+
   elements.goalsForm.addEventListener('submit', (event) => {
     event.preventDefault();
     const goals = {
@@ -618,10 +681,122 @@ function setupSettings() {
       fats: Math.max(1, Number(elements.goalFats.value) || DEFAULT_GOALS.fats),
     };
     localStorage.setItem(STORAGE.goals, JSON.stringify(goals));
+    renderProfileSummary();
     elements.goalsFormStatus.textContent = 'Objetivos guardados localmente.';
     renderDashboard();
     showToast('Objetivos diarios actualizados.');
   });
+}
+
+
+function readProfileForm() {
+  return {
+    age: Number(elements.profileAge?.value) || 0,
+    sex: elements.profileSex?.value || 'other',
+    height: Number(elements.profileHeight?.value) || 0,
+    weight: Number(elements.profileWeight?.value) || 0,
+    activity: Number(elements.profileActivity?.value) || 1.2,
+    goal: elements.profileGoal?.value || 'maintain',
+  };
+}
+
+function validateProfile(profile) {
+  if (profile.age < 12 || profile.age > 100) return 'Revisa la edad: debe estar entre 12 y 100 años.';
+  if (profile.height < 120 || profile.height > 230) return 'Revisa la altura: debe estar entre 120 y 230 cm.';
+  if (profile.weight < 35 || profile.weight > 250) return 'Revisa el peso: debe estar entre 35 y 250 kg.';
+  return '';
+}
+
+function calculateNutritionGoals(profile) {
+  const sexOffset = profile.sex === 'male' ? 5 : profile.sex === 'female' ? -161 : -78;
+  const bmr = (10 * profile.weight) + (6.25 * profile.height) - (5 * profile.age) + sexOffset;
+  const maintenance = bmr * profile.activity;
+  const goalConfig = getGoalConfig(profile.goal);
+  const calories = Math.max(1200, Math.round(maintenance * goalConfig.calorieFactor));
+  const protein = Math.round(profile.weight * goalConfig.proteinPerKg);
+  const fats = Math.round(Math.max(profile.weight * 0.7, (calories * 0.22) / 9));
+  const carbs = Math.round(Math.max(40, (calories - (protein * 4) - (fats * 9)) / 4));
+
+  return {
+    calories,
+    protein,
+    carbs,
+    fats,
+    bmr: Math.round(bmr),
+    maintenance: Math.round(maintenance),
+    goalLabel: goalConfig.label,
+    source: 'profile',
+  };
+}
+
+function getGoalConfig(goal) {
+  const configs = {
+    lose_fat: { label: 'bajar peso / perder grasa', calorieFactor: 0.85, proteinPerKg: 2.0, advice: 'Déficit moderado, buena proteína y constancia. Priorizá comidas saciantes, verduras y entrenamiento de fuerza si podés.' },
+    recompose: { label: 'perder grasa y mantener músculo', calorieFactor: 0.92, proteinPerKg: 2.1, advice: 'Déficit suave con proteína alta: ideal para mejorar composición corporal sin bajar demasiado el rendimiento.' },
+    maintain: { label: 'mantener peso y mejorar hábitos', calorieFactor: 1.0, proteinPerKg: 1.7, advice: 'Objetivo equilibrado: buscá regularidad, fibra, proteína suficiente y calidad de alimentos.' },
+    gain_muscle: { label: 'ganar músculo con mínimo exceso', calorieFactor: 1.08, proteinPerKg: 2.0, advice: 'Superávit leve: acompañalo con entrenamiento progresivo y controlá que el aumento de peso sea gradual.' },
+    gain_weight: { label: 'subir peso', calorieFactor: 1.15, proteinPerKg: 1.8, advice: 'Superávit más claro: sumá comidas densas en energía sin descuidar proteína, micronutrientes y digestión.' },
+  };
+  return configs[goal] || configs.maintain;
+}
+
+function getProfile() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE.profile) || 'null');
+  } catch {
+    return null;
+  }
+}
+
+function loadProfileIntoForm() {
+  const profile = getProfile();
+  if (!profile || !elements.profileForm) return;
+  elements.profileAge.value = profile.age || '';
+  elements.profileSex.value = profile.sex || 'other';
+  elements.profileHeight.value = profile.height || '';
+  elements.profileWeight.value = profile.weight || '';
+  elements.profileActivity.value = String(profile.activity || 1.2);
+  elements.profileGoal.value = profile.goal || 'maintain';
+}
+
+function renderProfileSummary() {
+  if (!elements.profileCalories) return;
+  const profile = getProfile();
+  const goals = getGoals();
+  const goalConfig = profile ? getGoalConfig(profile.goal) : null;
+
+  elements.profileCalories.textContent = String(Math.round(goals.calories));
+  elements.profileProtein.textContent = `${formatNumber(goals.protein)} g`;
+  elements.profileCarbs.textContent = `${formatNumber(goals.carbs)} g`;
+  elements.profileFats.textContent = `${formatNumber(goals.fats)} g`;
+
+  if (!profile) {
+    elements.profileSummaryText.textContent = 'Completá edad, altura, peso, actividad y objetivo para obtener una guía personalizada.';
+    elements.profileAdvice.textContent = 'Mientras no cargues tu perfil, se usan metas generales por defecto. Podés editarlas manualmente en Ajustes.';
+    return;
+  }
+
+  elements.profileSummaryText.textContent = `Para ${goalConfig.label}, tu referencia es ${Math.round(goals.calories)} kcal diarias. Mantenimiento estimado: ${goals.maintenance || '—'} kcal.`;
+  elements.profileAdvice.textContent = goalConfig.advice;
+}
+
+function formatCalorieDelta(diff) {
+  if (Math.abs(diff) <= 40) return 'Estás prácticamente en tu meta calórica.';
+  return diff > 0 ? `Te faltan aprox. ${diff} kcal.` : `Te pasaste aprox. ${Math.abs(diff)} kcal.`;
+}
+
+function buildComparisonAdvice(totals, goals) {
+  const remainingProtein = Math.round(goals.protein - totals.protein);
+  const remainingCalories = Math.round(goals.calories - totals.calories);
+  const calorieText = remainingCalories >= 0
+    ? `quedan unas ${remainingCalories} kcal para el día`
+    : `superaste la meta por unas ${Math.abs(remainingCalories)} kcal`;
+  const proteinText = remainingProtein > 8
+    ? `Conviene priorizar proteína en la próxima comida: faltan unos ${remainingProtein} g.`
+    : remainingProtein < -8
+      ? 'La proteína ya está cubierta; equilibrá con verduras, fibra y saciedad.'
+      : 'La proteína está cerca de la meta.';
+  return `Según tu objetivo, ${calorieText}. ${proteinText}`;
 }
 
 function refreshApiState() {
@@ -770,11 +945,11 @@ async function registerServiceWorker() {
     const flag = 'nutriscan_sw_reloaded_20260608_cachefix';
     if (sessionStorage.getItem(flag)) return;
     sessionStorage.setItem(flag, '1');
-    window.location.replace('./index.html?v=20260608-cachefix');
+    window.location.replace('./index.html?v=20260609-profile');
   };
 
   try {
-    const registration = await navigator.serviceWorker.register('./sw.js?v=20260608-cachefix', {
+    const registration = await navigator.serviceWorker.register('./sw.js?v=20260609-profile', {
       updateViaCache: 'none',
     });
 

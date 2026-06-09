@@ -1,10 +1,10 @@
-const APP_VERSION = '2026.06.08-cachefix';
+const APP_VERSION = '2026.06.09-profile';
 const CACHE_NAME = `nutriscan-${APP_VERSION}`;
 const APP_SHELL = [
-  './index.html?v=20260608-cachefix',
-  './styles.css?v=20260608-cachefix',
-  './app.js?v=20260608-cachefix',
-  './manifest.json?v=20260608-cachefix',
+  './index.html?v=20260609-profile',
+  './styles.css?v=20260609-profile',
+  './app.js?v=20260609-profile',
+  './manifest.json?v=20260609-profile',
   './icons/icon.svg',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -49,10 +49,10 @@ self.addEventListener('fetch', (event) => {
       fetch(event.request, { cache: 'no-store' })
         .then((response) => {
           const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put('./index.html?v=20260608-cachefix', copy));
+          caches.open(CACHE_NAME).then((cache) => cache.put('./index.html?v=20260609-profile', copy));
           return response;
         })
-        .catch(() => caches.match('./index.html?v=20260608-cachefix'))
+        .catch(() => caches.match('./index.html?v=20260609-profile'))
     );
     return;
   }
@@ -80,6 +80,6 @@ self.addEventListener('fetch', (event) => {
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
         return response;
       })
-      .catch(() => caches.match(event.request).then((cached) => cached || caches.match('./index.html?v=20260608-cachefix')))
+      .catch(() => caches.match(event.request).then((cached) => cached || caches.match('./index.html?v=20260609-profile')))
   );
 });
