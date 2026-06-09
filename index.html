@@ -9,10 +9,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="NutriScan" />
   <title>NutriScan | Diario nutricional con IA</title>
-  <link rel="manifest" href="manifest.json?v=20260609-profile" />
-  <link rel="icon" href="icons/icon.svg?v=20260609-profile" type="image/svg+xml" />
-  <link rel="apple-touch-icon" href="icons/icon-192.png?v=20260609-profile" />
-  <link rel="stylesheet" href="styles.css?v=20260609-profile" />
+  <link rel="manifest" href="manifest.json?v=20260609-micros" />
+  <link rel="icon" href="icons/icon.svg?v=20260609-micros" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png?v=20260609-micros" />
+  <link rel="stylesheet" href="styles.css?v=20260609-micros" />
 </head>
 <body>
   <div class="app-shell">
@@ -138,6 +138,18 @@
                   <strong id="fatsValue">0 g</strong>
                 </div>
               </div>
+              <div class="micronutrient-panel">
+                <div class="micro-panel-heading">
+                  <div>
+                    <span>Micronutrientes orientativos</span>
+                    <p>Vitaminas, minerales, agua y bioactivos estimados para la porción.</p>
+                  </div>
+                  <strong id="micronutrientConfidence">Confianza micro: —</strong>
+                </div>
+                <div class="nutrient-chip-grid" id="micronutrientHighlights"></div>
+                <div class="component-grid" id="hydrationBioactives"></div>
+                <p class="microcopy">No reemplaza análisis de laboratorio ni indicación profesional; sirve como guía de variedad y calidad nutricional.</p>
+              </div>
               <div class="action-row">
                 <button class="primary-button" type="button" id="saveMealButton">Guardar comida</button>
                 <button class="ghost-button" type="button" id="discardResultButton">Descartar</button>
@@ -193,6 +205,18 @@
               <strong id="calorieDelta">Completa tu perfil</strong>
             </div>
             <p id="comparisonAdvice">Cuando cargues tu perfil, acá vas a ver cuánto te falta o cuánto te pasaste respecto de tus calorías y macros recomendados.</p>
+          </div>
+
+          <div class="micronutrient-day-card" id="dailyMicronutrientCard">
+            <div class="micro-panel-heading">
+              <div>
+                <span>Micronutrientes del día</span>
+                <p>Sumatoria aproximada de vitaminas, minerales, agua y bioactivos guardados.</p>
+              </div>
+            </div>
+            <div class="nutrient-chip-grid" id="dailyMicronutrientHighlights"></div>
+            <div class="component-grid" id="dailyHydrationBioactives"></div>
+            <p class="microcopy" id="dailyMicronutrientNote">Los valores son orientativos y dependen de la porción, receta, cocción y alimentos exactos.</p>
           </div>
 
           <div class="meal-list-header">
@@ -333,6 +357,6 @@
   </div>
 
   <canvas id="compressionCanvas" class="sr-only" aria-hidden="true"></canvas>
-  <script src="app.js?v=20260609-profile" defer></script>
+  <script src="app.js?v=20260609-micros" defer></script>
 </body>
 </html>

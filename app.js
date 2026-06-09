@@ -21,6 +21,36 @@ const DEFAULT_GOALS = {
   fats: 70,
 };
 
+const MICRONUTRIENT_DEFINITIONS = [
+  { key: 'vitaminC', label: 'Vit. C', fullLabel: 'Vitamina C', unit: 'mg', aliases: ['vitamin_c_mg', 'vitamina_c_mg', 'vitaminC', 'vitamin_c'] },
+  { key: 'vitaminB1', label: 'B1', fullLabel: 'Vitamina B1', unit: 'mg', aliases: ['vitamin_b1_mg', 'thiamin_mg', 'tiamina_mg', 'vitaminB1'] },
+  { key: 'vitaminB2', label: 'B2', fullLabel: 'Vitamina B2', unit: 'mg', aliases: ['vitamin_b2_mg', 'riboflavin_mg', 'riboflavina_mg', 'vitaminB2'] },
+  { key: 'vitaminB3', label: 'B3', fullLabel: 'Vitamina B3', unit: 'mg', aliases: ['vitamin_b3_mg', 'niacin_mg', 'niacina_mg', 'vitaminB3'] },
+  { key: 'vitaminB5', label: 'B5', fullLabel: 'Vitamina B5', unit: 'mg', aliases: ['vitamin_b5_mg', 'pantothenic_acid_mg', 'acido_pantotenico_mg', 'vitaminB5'] },
+  { key: 'vitaminB6', label: 'B6', fullLabel: 'Vitamina B6', unit: 'mg', aliases: ['vitamin_b6_mg', 'pyridoxine_mg', 'piridoxina_mg', 'vitaminB6'] },
+  { key: 'vitaminB7', label: 'B7', fullLabel: 'Vitamina B7', unit: 'mcg', aliases: ['vitamin_b7_mcg', 'biotin_mcg', 'biotina_mcg', 'vitaminB7'] },
+  { key: 'vitaminB9', label: 'B9', fullLabel: 'Vitamina B9', unit: 'mcg', aliases: ['vitamin_b9_mcg', 'folate_mcg', 'folato_mcg', 'acido_folico_mcg', 'vitaminB9'] },
+  { key: 'vitaminB12', label: 'B12', fullLabel: 'Vitamina B12', unit: 'mcg', aliases: ['vitamin_b12_mcg', 'cobalamin_mcg', 'cobalamina_mcg', 'vitaminB12'] },
+  { key: 'vitaminA', label: 'Vit. A', fullLabel: 'Vitamina A', unit: 'mcg', aliases: ['vitamin_a_mcg', 'retinol_mcg', 'rae_mcg', 'vitaminA'] },
+  { key: 'vitaminD', label: 'Vit. D', fullLabel: 'Vitamina D', unit: 'mcg', aliases: ['vitamin_d_mcg', 'vitaminD'] },
+  { key: 'vitaminE', label: 'Vit. E', fullLabel: 'Vitamina E', unit: 'mg', aliases: ['vitamin_e_mg', 'tocopherol_mg', 'vitaminE'] },
+  { key: 'vitaminK', label: 'Vit. K', fullLabel: 'Vitamina K', unit: 'mcg', aliases: ['vitamin_k_mcg', 'vitaminK'] },
+  { key: 'calcium', label: 'Calcio', fullLabel: 'Calcio', unit: 'mg', aliases: ['calcium_mg', 'calcio_mg', 'calcium'] },
+  { key: 'magnesium', label: 'Magnesio', fullLabel: 'Magnesio', unit: 'mg', aliases: ['magnesium_mg', 'magnesio_mg', 'magnesium'] },
+  { key: 'potassium', label: 'Potasio', fullLabel: 'Potasio', unit: 'mg', aliases: ['potassium_mg', 'potasio_mg', 'potassium'] },
+  { key: 'sodium', label: 'Sodio', fullLabel: 'Sodio', unit: 'mg', aliases: ['sodium_mg', 'sodio_mg', 'sodium'] },
+  { key: 'phosphorus', label: 'Fósforo', fullLabel: 'Fósforo', unit: 'mg', aliases: ['phosphorus_mg', 'fosforo_mg', 'phosphorus'] },
+  { key: 'iron', label: 'Hierro', fullLabel: 'Hierro', unit: 'mg', aliases: ['iron_mg', 'hierro_mg', 'iron'] },
+  { key: 'zinc', label: 'Zinc', fullLabel: 'Zinc', unit: 'mg', aliases: ['zinc_mg', 'zinc'] },
+  { key: 'copper', label: 'Cobre', fullLabel: 'Cobre', unit: 'mg', aliases: ['copper_mg', 'cobre_mg', 'copper'] },
+  { key: 'manganese', label: 'Manganeso', fullLabel: 'Manganeso', unit: 'mg', aliases: ['manganese_mg', 'manganeso_mg', 'manganese'] },
+  { key: 'iodine', label: 'Yodo', fullLabel: 'Yodo', unit: 'mcg', aliases: ['iodine_mcg', 'yodo_mcg', 'iodine'] },
+  { key: 'selenium', label: 'Selenio', fullLabel: 'Selenio', unit: 'mcg', aliases: ['selenium_mcg', 'selenio_mcg', 'selenium'] },
+];
+
+const MICRONUTRIENT_PRIORITY = ['potassium', 'sodium', 'calcium', 'magnesium', 'phosphorus', 'iron', 'zinc', 'vitaminC', 'vitaminA', 'vitaminB12', 'vitaminD', 'vitaminK'];
+const BIOACTIVE_LEVELS = ['sin dato', 'bajo', 'medio', 'alto'];
+
 const state = {
   compressedImage: null,
   currentResult: null,
@@ -55,6 +85,9 @@ const elements = {
   calorieValue: $('#calorieValue'),
   mealNotes: $('#mealNotes'),
   foodReview: $('#foodReview'),
+  micronutrientHighlights: $('#micronutrientHighlights'),
+  hydrationBioactives: $('#hydrationBioactives'),
+  micronutrientConfidence: $('#micronutrientConfidence'),
   proteinValue: $('#proteinValue'),
   carbsValue: $('#carbsValue'),
   fatsValue: $('#fatsValue'),
@@ -93,6 +126,9 @@ const elements = {
   targetFats: $('#targetFats'),
   calorieDelta: $('#calorieDelta'),
   comparisonAdvice: $('#comparisonAdvice'),
+  dailyMicronutrientHighlights: $('#dailyMicronutrientHighlights'),
+  dailyHydrationBioactives: $('#dailyHydrationBioactives'),
+  dailyMicronutrientNote: $('#dailyMicronutrientNote'),
   profileForm: $('#profileForm'),
   profileAge: $('#profileAge'),
   profileSex: $('#profileSex'),
@@ -285,7 +321,7 @@ async function callGemini(apiKey, image, mealContext = '') {
   const contextText = mealContext
     ? `\nContexto aportado por el usuario: ${mealContext}. Usá este dato para identificar ingredientes, rellenos, cantidad o cocción que no sean visibles en la foto.`
     : '';
-  const prompt = `Analiza la imagen de comida y devuelve únicamente JSON válido, sin markdown, sin texto adicional y sin unidades en los números.${contextText} Si no puedes identificar con certeza, usa el plato más probable y baja el campo confidence. Esquema exacto requerido: {"dish_name":"string","calories":number,"protein_g":number,"fat_g":number,"carbs_g":number,"confidence":number,"notes":"string","review":"string"}. calories debe ser kcal estimadas; protein_g, fat_g y carbs_g deben ser gramos estimados para la porción visible. confidence debe estar entre 0 y 1. notes debe explicar brevemente la incertidumbre de la estimación. review debe ser una reseña nutricional y gastronómica breve en español rioplatense/neutro, de 1 a 2 frases, útil y amable, mencionando balance, porción o una mejora posible sin juzgar.`;
+  const prompt = `Analiza la imagen de comida y devuelve únicamente JSON válido, sin markdown, sin texto adicional y sin unidades en los números.${contextText} Si no puedes identificar con certeza, usa el plato más probable, baja confidence y baja micronutrient_confidence. Esquema exacto requerido: {"dish_name":"string","calories":number,"protein_g":number,"fat_g":number,"carbs_g":number,"confidence":number,"notes":"string","review":"string","micronutrient_confidence":number,"micronutrients":{"vitamin_c_mg":number,"vitamin_b1_mg":number,"vitamin_b2_mg":number,"vitamin_b3_mg":number,"vitamin_b5_mg":number,"vitamin_b6_mg":number,"vitamin_b7_mcg":number,"vitamin_b9_mcg":number,"vitamin_b12_mcg":number,"vitamin_a_mcg":number,"vitamin_d_mcg":number,"vitamin_e_mg":number,"vitamin_k_mcg":number,"calcium_mg":number,"magnesium_mg":number,"potassium_mg":number,"sodium_mg":number,"phosphorus_mg":number,"iron_mg":number,"zinc_mg":number,"copper_mg":number,"manganese_mg":number,"iodine_mcg":number,"selenium_mcg":number},"hydration":{"water_g":number,"water_percent":number},"bioactives":{"antioxidants":"bajo|medio|alto|sin dato","polyphenols":"bajo|medio|alto|sin dato","flavonoids":"bajo|medio|alto|sin dato","notes":"string"}}. calories debe ser kcal estimadas; protein_g, fat_g y carbs_g deben ser gramos estimados para la porción visible. Los micronutrientes, agua y compuestos bioactivos son estimaciones orientativas para la porción visible: si no aplica o no se puede inferir, usa 0 en nutrientes numéricos y "sin dato" en bioactivos. confidence y micronutrient_confidence deben estar entre 0 y 1. notes debe explicar brevemente la incertidumbre de la estimación. review debe ser una reseña nutricional y gastronómica breve en español rioplatense/neutro, de 1 a 2 frases, útil y amable, mencionando balance, porción, micronutrientes destacados o una mejora posible sin juzgar.`;
 
   let lastError = null;
   const modelsToTry = await getAvailableGeminiModels(apiKey);
@@ -401,6 +437,7 @@ function normalizeGeminiResult(raw) {
   const carbs = clampNumber(raw.carbs_g ?? raw.carbohydrates_g ?? raw.carbs, 0, 1000);
   const fats = clampNumber(raw.fat_g ?? raw.fats_g ?? raw.fat ?? raw.fats, 0, 1000);
   const confidence = clampNumber(raw.confidence ?? 0.75, 0, 1);
+  const micronutrientConfidence = clampNumber(raw.micronutrient_confidence ?? raw.micronutrients_confidence ?? raw.micronutrientConfidence ?? confidence * 0.75, 0, 1);
 
   return {
     id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
@@ -410,13 +447,62 @@ function normalizeGeminiResult(raw) {
     carbs: roundMacro(carbs),
     fats: roundMacro(fats),
     confidence,
+    micronutrientConfidence,
     notes: String(raw.notes ?? 'Estimación generada por IA; puede variar según porción e ingredientes.').trim(),
     review: String(raw.review ?? raw.food_review ?? raw.reseña ?? raw.resena ?? 'Buena referencia para registrar tu comida; la IA recomienda revisar porción e ingredientes si querés mayor precisión.').trim(),
+    micronutrients: normalizeMicronutrients(raw.micronutrients ?? raw.micros ?? raw.micronutrientes ?? raw),
+    hydration: normalizeHydration(raw.hydration ?? raw.agua ?? raw.water ?? raw),
+    bioactives: normalizeBioactives(raw.bioactives ?? raw.compuestos_bioactivos ?? raw.compounds ?? raw),
     modelUsed: String(raw.model_used ?? '').trim(),
     context: elements.mealContext?.value.trim() || '',
     photoDataUrl: state.compressedImage?.dataUrl || '',
     createdAt: new Date().toISOString(),
   };
+}
+
+function normalizeMicronutrients(source = {}) {
+  return MICRONUTRIENT_DEFINITIONS.reduce((acc, nutrient) => {
+    acc[nutrient.key] = roundMicro(readNumberFromAliases(source, nutrient.aliases), nutrient.unit);
+    return acc;
+  }, {});
+}
+
+function normalizeHydration(source = {}) {
+  return {
+    waterG: Math.round(clampNumber(source.water_g ?? source.agua_g ?? source.waterG ?? source.water ?? 0, 0, 5000)),
+    waterPercent: Math.round(clampNumber(source.water_percent ?? source.agua_percent ?? source.waterPercent ?? 0, 0, 100)),
+  };
+}
+
+function normalizeBioactives(source = {}) {
+  return {
+    antioxidants: normalizeBioactiveLevel(source.antioxidants ?? source.antioxidantes),
+    polyphenols: normalizeBioactiveLevel(source.polyphenols ?? source.polifenoles),
+    flavonoids: normalizeBioactiveLevel(source.flavonoids ?? source.flavonoides),
+    notes: String(source.notes ?? source.notas ?? '').trim(),
+  };
+}
+
+function normalizeBioactiveLevel(value) {
+  const normalized = String(value ?? 'sin dato').trim().toLowerCase();
+  return BIOACTIVE_LEVELS.includes(normalized) ? normalized : 'sin dato';
+}
+
+function readNumberFromAliases(source, aliases) {
+  if (!source || typeof source !== 'object') return 0;
+  for (const alias of aliases) {
+    if (source[alias] !== undefined && source[alias] !== null) {
+      return clampNumber(source[alias], 0, 100000);
+    }
+  }
+  return 0;
+}
+
+function roundMicro(value, unit) {
+  const number = Number(value) || 0;
+  if (unit === 'mcg') return Math.round(number * 10) / 10;
+  if (number < 10) return Math.round(number * 10) / 10;
+  return Math.round(number);
 }
 
 function clampNumber(value, min, max) {
@@ -442,10 +528,88 @@ function renderResult(result) {
   elements.fatsValue.textContent = `${formatNumber(result.fats)} g`;
   elements.mealNotes.textContent = result.notes;
   elements.foodReview.textContent = result.review;
+  renderMicronutrientPanel(result);
 
   const goals = getGoals();
   const degrees = Math.min(360, Math.round((result.calories / goals.calories) * 360));
   elements.calorieRing.style.setProperty('--progress', `${degrees}deg`);
+}
+
+function renderMicronutrientPanel(result) {
+  if (!elements.micronutrientHighlights) return;
+  elements.micronutrientHighlights.innerHTML = buildNutrientChips(result.micronutrients, 8);
+  elements.hydrationBioactives.innerHTML = buildHydrationBioactives(result.hydration, result.bioactives);
+  elements.micronutrientConfidence.textContent = `Confianza micro: ${Math.round((result.micronutrientConfidence ?? 0) * 100)}%`;
+}
+
+function buildNutrientChips(micronutrients = {}, limit = 8) {
+  const selected = getDisplayNutrients(micronutrients, limit);
+  if (!selected.length) {
+    return '<p class="microcopy nutrient-empty">Sin micronutrientes destacables estimados para esta porción.</p>';
+  }
+
+  return selected.map(({ definition, value }) => `
+    <span class="nutrient-chip" title="${escapeAttribute(definition.fullLabel)}">
+      <small>${escapeHtml(definition.label)}</small>
+      <strong>${formatMicroValue(value, definition.unit)}</strong>
+    </span>
+  `).join('');
+}
+
+function getDisplayNutrients(micronutrients = {}, limit = 8) {
+  const withValues = MICRONUTRIENT_DEFINITIONS
+    .map((definition) => ({ definition, value: Number(micronutrients[definition.key]) || 0 }))
+    .filter((item) => item.value > 0);
+
+  const priority = withValues
+    .filter((item) => MICRONUTRIENT_PRIORITY.includes(item.definition.key))
+    .sort((a, b) => MICRONUTRIENT_PRIORITY.indexOf(a.definition.key) - MICRONUTRIENT_PRIORITY.indexOf(b.definition.key));
+  const rest = withValues
+    .filter((item) => !MICRONUTRIENT_PRIORITY.includes(item.definition.key))
+    .sort((a, b) => b.value - a.value);
+
+  return [...priority, ...rest].slice(0, limit);
+}
+
+function buildHydrationBioactives(hydration = {}, bioactives = {}) {
+  const water = Number(hydration.waterG) || 0;
+  const waterPercent = Number(hydration.waterPercent) || 0;
+  const bioactiveNote = bioactives.notes ? `<p class="component-note">${escapeHtml(bioactives.notes)}</p>` : '';
+
+  return `
+    <div class="component-card water">
+      <span>Agua estimada</span>
+      <strong>${water ? `${formatNumber(water)} g` : 'Sin dato'}</strong>
+      <small>${waterPercent ? `${waterPercent}% de la porción` : 'Depende de preparación'}</small>
+    </div>
+    <div class="component-card">
+      <span>Antioxidantes</span>
+      <strong>${capitalizeText(bioactives.antioxidants || 'sin dato')}</strong>
+      <small>Protectores celulares</small>
+    </div>
+    <div class="component-card">
+      <span>Polifenoles</span>
+      <strong>${capitalizeText(bioactives.polyphenols || 'sin dato')}</strong>
+      <small>Compuestos vegetales</small>
+    </div>
+    <div class="component-card">
+      <span>Flavonoides</span>
+      <strong>${capitalizeText(bioactives.flavonoids || 'sin dato')}</strong>
+      <small>Según ingredientes</small>
+    </div>
+    ${bioactiveNote}
+  `;
+}
+
+function formatMicroValue(value, unit) {
+  const number = Number(value) || 0;
+  const formatted = unit === 'mcg' || number < 10 ? formatNumber(number) : String(Math.round(number));
+  return `${formatted} ${unit}`;
+}
+
+function capitalizeText(value) {
+  const text = String(value || 'sin dato');
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 function clearResult(clearImage = true) {
@@ -517,6 +681,7 @@ function renderDashboard() {
     acc.fats += Number(meal.fats) || 0;
     return acc;
   }, { calories: 0, protein: 0, carbs: 0, fats: 0 });
+  const microTotals = aggregateMealComponents(meals);
 
   const goals = getGoals();
   const calorieDegrees = Math.min(360, Math.round((totals.calories / goals.calories) * 360));
@@ -536,6 +701,7 @@ function renderDashboard() {
   elements.proteinBar.style.width = `${toPercent(totals.protein, goals.protein)}%`;
   elements.carbsBar.style.width = `${toPercent(totals.carbs, goals.carbs)}%`;
   elements.fatsBar.style.width = `${toPercent(totals.fats, goals.fats)}%`;
+  renderDailyMicronutrients(microTotals, meals.length);
 
   const readableDate = formatDateLong(state.selectedDate);
   elements.dailySummaryText.textContent = meals.length
@@ -543,6 +709,69 @@ function renderDashboard() {
     : `${readableDate}: todavía no guardaste comidas.`;
 
   renderMealList(meals);
+}
+
+function aggregateMealComponents(meals) {
+  const micronutrients = normalizeMicronutrients({});
+  const bioactiveCounts = { antioxidants: {}, polyphenols: {}, flavonoids: {} };
+  let waterG = 0;
+  let waterPercentSum = 0;
+  let waterPercentCount = 0;
+
+  meals.forEach((meal) => {
+    const mealMicros = normalizeMicronutrients(meal.micronutrients || {});
+    MICRONUTRIENT_DEFINITIONS.forEach((definition) => {
+      micronutrients[definition.key] += Number(mealMicros[definition.key]) || 0;
+    });
+
+    const hydration = normalizeHydration(meal.hydration || {});
+    waterG += hydration.waterG;
+    if (hydration.waterPercent) {
+      waterPercentSum += hydration.waterPercent;
+      waterPercentCount += 1;
+    }
+
+    const bioactives = normalizeBioactives(meal.bioactives || {});
+    ['antioxidants', 'polyphenols', 'flavonoids'].forEach((key) => {
+      const level = bioactives[key] || 'sin dato';
+      bioactiveCounts[key][level] = (bioactiveCounts[key][level] || 0) + 1;
+    });
+  });
+
+  return {
+    micronutrients,
+    hydration: {
+      waterG,
+      waterPercent: waterPercentCount ? Math.round(waterPercentSum / waterPercentCount) : 0,
+    },
+    bioactives: {
+      antioxidants: mostFrequentLevel(bioactiveCounts.antioxidants),
+      polyphenols: mostFrequentLevel(bioactiveCounts.polyphenols),
+      flavonoids: mostFrequentLevel(bioactiveCounts.flavonoids),
+      notes: '',
+    },
+  };
+}
+
+function mostFrequentLevel(counts) {
+  return Object.entries(counts)
+    .filter(([level]) => level !== 'sin dato')
+    .sort((a, b) => b[1] - a[1])[0]?.[0] || 'sin dato';
+}
+
+function renderDailyMicronutrients(microTotals, mealCount) {
+  if (!elements.dailyMicronutrientHighlights) return;
+
+  if (!mealCount) {
+    elements.dailyMicronutrientHighlights.innerHTML = '<p class="microcopy nutrient-empty">Cuando guardes comidas, acá se sumarán los micronutrientes estimados del día.</p>';
+    elements.dailyHydrationBioactives.innerHTML = '';
+    elements.dailyMicronutrientNote.textContent = 'Los valores son orientativos y dependen de la porción, receta, cocción y alimentos exactos.';
+    return;
+  }
+
+  elements.dailyMicronutrientHighlights.innerHTML = buildNutrientChips(microTotals.micronutrients, 10);
+  elements.dailyHydrationBioactives.innerHTML = buildHydrationBioactives(microTotals.hydration, microTotals.bioactives);
+  elements.dailyMicronutrientNote.textContent = 'Suma diaria estimada por IA: útil como guía de variedad alimentaria, no como medición clínica.';
 }
 
 function renderWeekStrip() {
@@ -599,6 +828,7 @@ function renderMealList(meals) {
           <span>C ${formatNumber(meal.carbs)} g</span>
           <span>G ${formatNumber(meal.fats)} g</span>
         </div>
+        ${buildMealMicronutrientSummary(meal)}
       </div>
       ${meal.context ? `<p class="meal-context">Dato: ${escapeHtml(meal.context)}</p>` : ''}
       <button class="delete-meal-button" type="button" aria-label="Eliminar ${escapeHtml(meal.dishName)}">×</button>
@@ -607,6 +837,21 @@ function renderMealList(meals) {
     item.querySelector('.delete-meal-button').addEventListener('click', () => deleteMeal(meal.id));
     elements.mealList.appendChild(item);
   });
+}
+
+function buildMealMicronutrientSummary(meal) {
+  const chips = getDisplayNutrients(normalizeMicronutrients(meal.micronutrients || {}), 4);
+  const hydration = normalizeHydration(meal.hydration || {});
+  const waterChip = hydration.waterG ? `<span>Agua ${formatNumber(hydration.waterG)} g</span>` : '';
+
+  if (!chips.length && !waterChip) return '';
+
+  return `
+    <div class="meal-micros">
+      ${chips.map(({ definition, value }) => `<span>${escapeHtml(definition.label)} ${formatMicroValue(value, definition.unit)}</span>`).join('')}
+      ${waterChip}
+    </div>
+  `;
 }
 
 function deleteMeal(mealId) {
@@ -942,14 +1187,14 @@ async function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
 
   const reloadOnceForUpdate = () => {
-    const flag = 'nutriscan_sw_reloaded_20260608_cachefix';
+    const flag = 'nutriscan_sw_reloaded_20260609_micros';
     if (sessionStorage.getItem(flag)) return;
     sessionStorage.setItem(flag, '1');
-    window.location.replace('./index.html?v=20260609-profile');
+    window.location.replace('./index.html?v=20260609-micros');
   };
 
   try {
-    const registration = await navigator.serviceWorker.register('./sw.js?v=20260609-profile', {
+    const registration = await navigator.serviceWorker.register('./sw.js?v=20260609-micros', {
       updateViaCache: 'none',
     });
 

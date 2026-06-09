@@ -1105,3 +1105,138 @@ textarea:focus {
     flex: 1 1 auto;
   }
 }
+
+
+/* Micronutrientes, hidratación y bioactivos */
+.micronutrient-panel,
+.micronutrient-day-card {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid rgba(119, 255, 183, 0.18);
+  border-radius: 1.2rem;
+  background: linear-gradient(145deg, rgba(11, 42, 32, 0.82), rgba(6, 20, 16, 0.78));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.micro-panel-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.micro-panel-heading span {
+  display: block;
+  color: var(--mint);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.micro-panel-heading p,
+.component-card small,
+.nutrient-empty {
+  color: var(--muted);
+  margin: 0.2rem 0 0;
+}
+
+.micro-panel-heading strong {
+  flex: 0 0 auto;
+  border: 1px solid rgba(119, 255, 183, 0.2);
+  border-radius: 999px;
+  color: var(--mint);
+  font-size: 0.72rem;
+  padding: 0.35rem 0.6rem;
+  background: rgba(119, 255, 183, 0.08);
+}
+
+.nutrient-chip-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  gap: 0.55rem;
+}
+
+.nutrient-chip {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.9rem;
+  padding: 0.65rem;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.nutrient-chip small {
+  color: var(--muted);
+  display: block;
+  font-size: 0.72rem;
+  margin-bottom: 0.2rem;
+}
+
+.nutrient-chip strong {
+  color: var(--text);
+  font-size: 0.98rem;
+}
+
+.component-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+  gap: 0.65rem;
+  margin-top: 0.8rem;
+}
+
+.component-card {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1rem;
+  padding: 0.75rem;
+  background: rgba(2, 10, 8, 0.3);
+}
+
+.component-card.water {
+  border-color: rgba(112, 205, 255, 0.22);
+  background: rgba(26, 100, 126, 0.15);
+}
+
+.component-card span {
+  color: var(--muted);
+  display: block;
+  font-size: 0.72rem;
+  margin-bottom: 0.2rem;
+}
+
+.component-card strong {
+  color: var(--text);
+  display: block;
+}
+
+.component-note {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 0.84rem;
+  margin: 0;
+}
+
+.meal-micros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.55rem;
+}
+
+.meal-micros span {
+  border: 1px solid rgba(119, 255, 183, 0.16);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(119, 255, 183, 0.06);
+}
+
+@media (max-width: 620px) {
+  .micro-panel-heading {
+    flex-direction: column;
+  }
+
+  .micro-panel-heading strong {
+    align-self: flex-start;
+  }
+}

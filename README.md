@@ -47,3 +47,7 @@ Este proyecto es estático y funciona correctamente en GitHub Pages. Si actualiz
 ## Perfil y comparación diaria
 
 La versión actual agrega una pestaña **Perfil** donde se cargan edad, sexo para fórmula, altura, peso, actividad y objetivo corporal. La app estima calorías y macros mediante Mifflin-St Jeor, guarda todo en `localStorage` y compara cada día lo consumido contra la recomendación. El escáner también acepta detalles opcionales, como relleno o método de cocción, para mejorar el análisis de comidas ambiguas.
+
+## Micronutrientes
+
+NutriScan puede pedirle a Gemini una estimación orientativa de micronutrientes por porción: vitaminas hidrosolubles y liposolubles, minerales principales, oligoelementos, agua y compuestos bioactivos. Estos datos se guardan junto con cada comida y se suman en el dashboard diario. Son una guía educativa de variedad alimentaria y no reemplazan análisis de laboratorio, etiquetado nutricional ni indicación profesional.
