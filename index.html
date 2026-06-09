@@ -9,10 +9,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="NutriScan" />
   <title>NutriScan | Diario nutricional con IA</title>
-  <link rel="manifest" href="manifest.json" />
-  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
-  <link rel="apple-touch-icon" href="icons/icon-192.png" />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="manifest" href="manifest.json?v=20260608-cachefix" />
+  <link rel="icon" href="icons/icon.svg?v=20260608-cachefix" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png?v=20260608-cachefix" />
+  <link rel="stylesheet" href="styles.css?v=20260608-cachefix" />
 </head>
 <body>
   <div class="app-shell">
@@ -50,7 +50,7 @@
           <article class="glass-card scanner-card">
             <div class="section-heading">
               <div>
-                <p class="eyebrow">Escáner con Gemini 3.5 Flash</p>
+                <p class="eyebrow">Escáner con Gemini Flash actual</p>
                 <h2>Analiza tu plato desde una foto</h2>
               </div>
               <span class="status-pill" id="apiStatus">Sin API</span>
@@ -194,7 +194,7 @@
                 <h2>Configura Gemini</h2>
               </div>
             </div>
-            <p class="body-copy">Tu API Key no se incluye en el código fuente. Se guarda únicamente en el almacenamiento local de este navegador bajo la clave <strong>nutriscan_api_key</strong>. La app intenta usar primero <strong>Gemini 3.5 Flash</strong> y, si tu cuenta aún no lo tiene habilitado, baja automáticamente a modelos Flash compatibles.</p>
+            <p class="body-copy">Tu API Key no se incluye en el código fuente. Se guarda únicamente en el almacenamiento local de este navegador bajo la clave <strong>nutriscan_api_key</strong>. La app consulta los modelos habilitados para tu API Key e intenta usar primero <strong>Gemini 2.5 Flash</strong>; si no aparece disponible en tu proyecto, baja automáticamente a otro modelo Flash compatible.</p>
             <form id="apiForm" class="settings-form">
               <label for="apiKeyInput">API Key de Google AI Studio</label>
               <div class="secret-field">
@@ -237,6 +237,6 @@
   </div>
 
   <canvas id="compressionCanvas" class="sr-only" aria-hidden="true"></canvas>
-  <script src="app.js" defer></script>
+  <script src="app.js?v=20260608-cachefix" defer></script>
 </body>
 </html>

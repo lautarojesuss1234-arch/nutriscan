@@ -9,3 +9,7 @@ La vista **Historial** también cargó correctamente con selector de fecha, sema
 ## Verificación de actualización Gemini y reseña IA
 
 La interfaz local servida en `http://127.0.0.1:4174/index.html` carga correctamente y muestra el texto **Escáner con Gemini 3.5 Flash**. Se ejecutó una prueba controlada en consola con un resultado simulado que incluye `model_used: gemini-3.5-flash` y `review`. La app guardó la comida en `localStorage`, activó la vista Historial y la reseña quedó visible en la lista de comidas guardadas. El chip del resultado mostró `82% · 3.5-flash` durante la prueba previa al guardado.
+
+## Validación de corrección de caché PWA
+
+Se abrió la versión local `http://127.0.0.1:4180/index.html?v=20260608-cachefix` y la interfaz mostró correctamente **Escáner con Gemini Flash actual**, sin referencias visibles a Gemini 1.5. La consola confirmó que `app.js`, `styles.css`, `manifest.json` y `sw.js` se cargan con `v=20260608-cachefix`; además, el service worker activo corresponde a `sw.js?v=20260608-cachefix` y no hay workers pendientes. Esto valida que el versionado fuerte rompe la caché anterior de la PWA instalada.

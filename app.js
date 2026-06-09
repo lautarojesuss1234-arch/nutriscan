@@ -3,12 +3,15 @@ const STORAGE = {
   goals: 'nutriscan_goals',
 };
 
-const GEMINI_MODELS = [
-  'gemini-3.5-flash',
+const GEMINI_MODEL_PREFERENCE = [
   'gemini-2.5-flash',
   'gemini-2.5-flash-lite',
+  'gemini-2.0-flash',
+  'gemini-2.0-flash-lite',
   'gemini-flash-latest',
 ];
+
+let availableGeminiModelsCache = null;
 
 const DEFAULT_GOALS = {
   calories: 2200,
@@ -254,8 +257,9 @@ async function callGemini(apiKey, image) {
   const prompt = `Analiza la imagen de comida y devuelve únicamente JSON válido, sin markdown, sin texto adicional y sin unidades en los números. Si no puedes identificar con certeza, usa el plato más probable y baja el campo confidence. Esquema exacto requerido: {"dish_name":"string","calories":number,"protein_g":number,"fat_g":number,"carbs_g":number,"confidence":number,"notes":"string","review":"string"}. calories debe ser kcal estimadas; protein_g, fat_g y carbs_g deben ser gramos estimados para la porción visible. confidence debe estar entre 0 y 1. notes debe explicar brevemente la incertidumbre de la estimación. review debe ser una reseña nutricional y gastronómica breve en español rioplatense/neutro, de 1 a 2 frases, útil y amable, mencionando balance, porción o una mejora posible sin juzgar.`;
 
   let lastError = null;
+  const modelsToTry = await getAvailableGeminiModels(apiKey);
 
-  for (const model of GEMINI_MODELS) {
+  for (const model of modelsToTry) {
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -311,6 +315,39 @@ async function callGemini(apiKey, image) {
   }
 
   throw lastError || new Error('No se encontró un modelo Gemini compatible para esta API Key.');
+}
+
+async function getAvailableGeminiModels(apiKey) {
+  if (availableGeminiModelsCache?.length) return availableGeminiModelsCache;
+
+  try {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`, {
+      cache: 'no-store',
+    });
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      console.warn('No se pudo listar modelos Gemini; se usarán fallbacks locales.', payload?.error?.message || response.status);
+      return GEMINI_MODEL_PREFERENCE;
+    }
+
+    const available = (payload.models || [])
+      .filter((model) => model.supportedGenerationMethods?.includes('generateContent'))
+      .map((model) => model.name?.replace(/^models\//, ''))
+      .filter(Boolean);
+
+    const preferredAvailable = GEMINI_MODEL_PREFERENCE.filter((model) => available.includes(model));
+    const otherFlashAvailable = available
+      .filter((model) => /gemini.*flash/i.test(model))
+      .filter((model) => !preferredAvailable.includes(model))
+      .sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
+
+    availableGeminiModelsCache = [...preferredAvailable, ...otherFlashAvailable];
+    return availableGeminiModelsCache.length ? availableGeminiModelsCache : GEMINI_MODEL_PREFERENCE;
+  } catch (error) {
+    console.warn('No se pudo listar modelos Gemini; se usarán fallbacks locales.', error);
+    return GEMINI_MODEL_PREFERENCE;
+  }
 }
 
 function shouldTryNextModel(status, message) {
@@ -729,8 +766,37 @@ function setupInstallPrompt() {
 async function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
 
+  const reloadOnceForUpdate = () => {
+    const flag = 'nutriscan_sw_reloaded_20260608_cachefix';
+    if (sessionStorage.getItem(flag)) return;
+    sessionStorage.setItem(flag, '1');
+    window.location.replace('./index.html?v=20260608-cachefix');
+  };
+
   try {
-    await navigator.serviceWorker.register('./sw.js');
+    const registration = await navigator.serviceWorker.register('./sw.js?v=20260608-cachefix', {
+      updateViaCache: 'none',
+    });
+
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      if (event.data?.type === 'NUTRISCAN_UPDATED') {
+        reloadOnceForUpdate();
+      }
+    });
+
+    registration.addEventListener('updatefound', () => {
+      const newWorker = registration.installing;
+      if (!newWorker) return;
+
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          newWorker.postMessage({ type: 'SKIP_WAITING' });
+        }
+      });
+    });
+
+    navigator.serviceWorker.addEventListener('controllerchange', reloadOnceForUpdate);
+    await registration.update();
   } catch (error) {
     console.warn('No se pudo registrar el service worker.', error);
   }

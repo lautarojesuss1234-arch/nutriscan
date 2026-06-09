@@ -1,8 +1,8 @@
 {
   "name": "NutriScan - Diario nutricional con IA",
   "short_name": "NutriScan",
-  "description": "Escanea comidas con Gemini, guarda fotos y consulta tu historial nutricional diario desde el navegador.",
-  "start_url": "./index.html",
+  "description": "Escanea comidas con Gemini Flash, guarda fotos, reseñas IA y consulta tu historial nutricional diario desde el navegador.",
+  "start_url": "./index.html?v=20260608-cachefix",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
