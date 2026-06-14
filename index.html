@@ -43,6 +43,10 @@
           <span class="tab-icon" aria-hidden="true">◍</span>
           <span>Perfil</span>
         </button>
+        <button class="tab-button" type="button" data-tab="assistant" aria-controls="assistant" aria-selected="false">
+          <span class="tab-icon" aria-hidden="true">💬</span>
+          <span>Asistente</span>
+        </button>
         <button class="tab-button" type="button" data-tab="settings" aria-controls="settings" aria-selected="false">
           <span class="tab-icon" aria-hidden="true">⚙</span>
           <span>Ajustes</span>
@@ -304,6 +308,33 @@
         </div>
       </section>
 
+      <section class="view" id="assistant" role="tabpanel" aria-labelledby="assistant-tab">
+        <article class="glass-card assistant-card">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Asistente nutricional</p>
+              <h2>Chat inteligente con IA</h2>
+            </div>
+            <span class="status-pill" id="assistantStatus">Sin API</span>
+          </div>
+
+          <div class="api-lock" id="assistantLock" role="status">
+            <strong>Configura tu API Key de NVIDIA primero.</strong>
+            <span>Ve a Ajustes, pega tu clave de NVIDIA NIM y vuelve aquí para chatear.</span>
+            <button class="secondary-button" type="button" data-go-settings>Ir a Ajustes</button>
+          </div>
+
+          <div class="chat-container" id="chatContainer" style="display: none;">
+            <div class="chat-history" id="chatHistory" aria-live="polite" aria-label="Historial de conversación"></div>
+            <form class="chat-input-form" id="chatForm">
+              <textarea id="chatInput" placeholder="Pregunta sobre nutrición, pide recetas o consejo..." rows="3"></textarea>
+              <button class="primary-button" type="submit" id="sendChatButton">Enviar</button>
+              <span class="button-loader hidden" aria-hidden="true"></span>
+            </form>
+          </div>
+        </article>
+      </section>
+
       <section class="view" id="settings" role="tabpanel" aria-labelledby="settings-tab">
         <div class="settings-grid">
           <article class="glass-card settings-card">
@@ -325,6 +356,28 @@
                 <button class="secondary-button danger" type="button" id="deleteApiKeyButton">Eliminar key</button>
               </div>
               <p class="microcopy" id="apiFormStatus">La app funciona sin servidor propio: la llamada a Gemini sale desde tu navegador.</p>
+            </form>
+          </article>
+
+          <article class="glass-card settings-card">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">Asistente inteligente</p>
+                <h2>Configura NVIDIA NIM</h2>
+              </div>
+            </div>
+            <p class="body-copy">Tu API Key de NVIDIA se guarda únicamente en el almacenamiento local bajo la clave <strong>nutriscan_nvidia_api_key</strong>. Esto habilita el Asistente nutricional con chat, generador de recetas y análisis avanzado usando modelos como Llama 3 o Mistral.</p>
+            <form id="nvidiaForm" class="settings-form">
+              <label for="nvidiaKeyInput">API Key de NVIDIA NIM</label>
+              <div class="secret-field">
+                <input id="nvidiaKeyInput" type="password" autocomplete="off" placeholder="Pega tu API Key de NVIDIA aquí" />
+                <button class="ghost-button" type="button" id="toggleNvidiaVisibility">Ver</button>
+              </div>
+              <div class="action-row">
+                <button class="primary-button" type="submit">Guardar API Key</button>
+                <button class="secondary-button danger" type="button" id="deleteNvidiaKeyButton">Eliminar key</button>
+              </div>
+              <p class="microcopy" id="nvidiaFormStatus">Obtén tu API Key gratis en build.nvidia.com. La llamada al Asistente sale desde tu navegador.</p>
             </form>
           </article>
 

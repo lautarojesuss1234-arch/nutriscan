@@ -1,7 +1,9 @@
 const STORAGE = {
   apiKey: 'nutriscan_api_key',
+  nvidiaApiKey: 'nutriscan_nvidia_api_key',
   goals: 'nutriscan_goals',
   profile: 'nutriscan_profile',
+  chatHistory: 'nutriscan_chat_history',
 };
 
 const GEMINI_MODEL_PREFERENCE = [
@@ -143,6 +145,18 @@ const elements = {
   profileFats: $('#profileFats'),
   profileSummaryText: $('#profileSummaryText'),
   profileAdvice: $('#profileAdvice'),
+  assistantStatus: $('#assistantStatus'),
+  assistantLock: $('#assistantLock'),
+  chatContainer: $('#chatContainer'),
+  chatHistory: $('#chatHistory'),
+  chatForm: $('#chatForm'),
+  chatInput: $('#chatInput'),
+  sendChatButton: $('#sendChatButton'),
+  nvidiaForm: $('#nvidiaForm'),
+  nvidiaKeyInput: $('#nvidiaKeyInput'),
+  toggleNvidiaVisibility: $('#toggleNvidiaVisibility'),
+  deleteNvidiaKeyButton: $('#deleteNvidiaKeyButton'),
+  nvidiaFormStatus: $('#nvidiaFormStatus'),
 };
 
 document.addEventListener('DOMContentLoaded', init);
@@ -153,12 +167,15 @@ function init() {
   setupScanner();
   setupDashboard();
   setupSettings();
+  setupAssistant();
   setupInstallPrompt();
   refreshApiState();
+  refreshAssistantState();
   loadProfileIntoForm();
   loadGoalsIntoForm();
   renderProfileSummary();
   renderDashboard();
+  loadChatHistory();
 }
 
 function setupTabs() {
@@ -894,7 +911,34 @@ function setupSettings() {
     showToast('API Key eliminada.');
   });
 
-
+  // NVIDIA NIM API Key Management
+  if (elements.nvidiaKeyInput) {
+    elements.nvidiaKeyInput.value = getNvidiaApiKey();
+    elements.nvidiaForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const key = elements.nvidiaKeyInput.value.trim();
+      if (!key) {
+        showToast('Pega una API Key de NVIDIA antes de guardar.');
+        return;
+      }
+      localStorage.setItem(STORAGE.nvidiaApiKey, key);
+      elements.nvidiaFormStatus.textContent = 'API Key de NVIDIA guardada localmente en este navegador.';
+      refreshAssistantState();
+      showToast('API Key de NVIDIA guardada.');
+    });
+    elements.toggleNvidiaVisibility.addEventListener('click', () => {
+      const isPassword = elements.nvidiaKeyInput.type === 'password';
+      elements.nvidiaKeyInput.type = isPassword ? 'text' : 'password';
+      elements.toggleNvidiaVisibility.textContent = isPassword ? 'Ocultar' : 'Ver';
+    });
+    elements.deleteNvidiaKeyButton.addEventListener('click', () => {
+      localStorage.removeItem(STORAGE.nvidiaApiKey);
+      elements.nvidiaKeyInput.value = '';
+      elements.nvidiaFormStatus.textContent = 'API Key de NVIDIA eliminada de este navegador.';
+      refreshAssistantState();
+      showToast('API Key de NVIDIA eliminada.');
+    });
+  }
 
   if (elements.profileForm) {
     elements.profileForm.addEventListener('submit', (event) => {
@@ -1220,4 +1264,281 @@ async function registerServiceWorker() {
   } catch (error) {
     console.warn('No se pudo registrar el service worker.', error);
   }
+}
+
+
+// ============ ASSISTANT NVIDIA NIM ============
+
+const ASSISTANT_CONFIG = {
+  rateLimitMs: 1000,
+  cacheExpiryMs: 3600000,
+  maxRequestsPerHour: 20,
+};
+
+let assistantState = {
+  lastRequestTime: 0,
+  requestsThisHour: 0,
+  hourStartTime: Date.now(),
+  responseCache: {},
+};
+
+function setupAssistant() {
+  if (!elements.chatForm) return;
+
+  elements.chatForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const message = elements.chatInput.value.trim();
+    if (!message) return;
+
+    const nvidiaKey = getNvidiaApiKey();
+    if (!nvidiaKey) {
+      showToast('Configura tu API Key de NVIDIA en Ajustes primero.');
+      activateTab('settings');
+      return;
+    }
+
+    // Add user message to chat
+    addChatMessage(message, 'user');
+    elements.chatInput.value = '';
+
+    // Show loading indicator
+    const loadingMsg = document.createElement('div');
+    loadingMsg.className = 'chat-loading';
+    loadingMsg.textContent = 'Asistente está pensando';
+    elements.chatHistory.appendChild(loadingMsg);
+    elements.chatHistory.scrollTop = elements.chatHistory.scrollHeight;
+
+    try {
+      const response = await callNvidiaAssistant(nvidiaKey, message);
+      loadingMsg.remove();
+      addChatMessage(response, 'assistant');
+      saveChatMessage({ role: 'user', content: message });
+      saveChatMessage({ role: 'assistant', content: response });
+    } catch (error) {
+      loadingMsg.remove();
+      console.error(error);
+      addChatMessage(`Error: ${error.message || 'No se pudo procesar tu pregunta.'}`, 'error');
+    }
+  });
+}
+
+function addChatMessage(content, role = 'assistant') {
+  const messageEl = document.createElement('div');
+  messageEl.className = `chat-message ${role}`;
+  messageEl.innerHTML = `<p>${escapeHtml(content)}</p><small>${formatTime(new Date().toISOString())}</small>`;
+  elements.chatHistory.appendChild(messageEl);
+  elements.chatHistory.scrollTop = elements.chatHistory.scrollHeight;
+}
+
+async function callNvidiaAssistant(apiKey, userMessage) {
+  const now = Date.now();
+  if (now - assistantState.lastRequestTime < ASSISTANT_CONFIG.rateLimitMs) {
+    throw new Error('Por favor espera un momento antes de enviar otro mensaje.');
+  }
+  if (now - assistantState.hourStartTime > 3600000) {
+    assistantState.requestsThisHour = 0;
+    assistantState.hourStartTime = now;
+  }
+  if (assistantState.requestsThisHour >= ASSISTANT_CONFIG.maxRequestsPerHour) {
+    throw new Error('Has alcanzado el limite de mensajes por hora. Intenta mas tarde.');
+  }
+  assistantState.lastRequestTime = now;
+  assistantState.requestsThisHour += 1;
+
+  const profile = getProfile();
+  const meals = getMealsForDate(toDateKey(new Date()));
+  const goals = getGoals();
+
+  // Check for special commands
+  const lowerMsg = userMessage.toLowerCase();
+  if (lowerMsg.includes('receta') || lowerMsg.includes('qué cocinar')) {
+    return generateRecipeFromMeals(apiKey, meals, profile, goals);
+  }
+  if (lowerMsg.includes('resumen') || lowerMsg.includes('semana') || lowerMsg.includes('análisis')) {
+    return generateWeeklySummary(apiKey, profile, goals);
+  }
+
+  // Build context from profile and today's meals
+  let context = 'Eres un asistente nutricional experto, amable y motivador. ';
+  if (profile) {
+    context += `El usuario es ${profile.age} años, ${profile.sex}, ${profile.height}cm, ${profile.weight}kg, con objetivo de ${profile.goal}. `;
+  }
+  context += `Sus metas diarias son: ${goals.calories} kcal, ${goals.protein}g proteína, ${goals.carbs}g carbos, ${goals.fats}g grasas. `;
+  if (meals.length > 0) {
+    const totalCals = meals.reduce((sum, m) => sum + (m.calories || 0), 0);
+    const totalProtein = meals.reduce((sum, m) => sum + (m.protein || 0), 0);
+    context += `Hoy ha consumido aproximadamente ${Math.round(totalCals)} kcal (${Math.round(totalProtein)}g proteína) en ${meals.length} comida${meals.length === 1 ? '' : 's'}. `;
+  }
+  context += 'Responde en español, de forma concisa y práctica. Si pide recetas, sé específico. Si pide consejo, sé motivador pero realista.';
+
+  const endpoint = 'https://integrate.api.nvidia.com/v1/chat/completions';
+  const payload = {
+    model: 'meta/llama-3.1-70b-instruct',
+    messages: [
+      { role: 'system', content: context },
+      { role: 'user', content: userMessage }
+    ],
+    temperature: 0.7,
+    top_p: 0.9,
+    max_tokens: 500,
+  };
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error?.message || `API Error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || 'No se pudo generar una respuesta.';
+}
+
+function getNvidiaApiKey() {
+  return localStorage.getItem(STORAGE.nvidiaApiKey) || '';
+}
+
+function hasNvidiaApiKey() {
+  return Boolean(getNvidiaApiKey());
+}
+
+function refreshAssistantState() {
+  const ready = hasNvidiaApiKey();
+  elements.assistantStatus.textContent = ready ? 'Asistente listo' : 'Sin API';
+  elements.assistantStatus.classList.toggle('ready', ready);
+  elements.assistantLock.classList.toggle('hidden', ready);
+  if (elements.chatContainer) {
+    elements.chatContainer.style.display = ready ? 'grid' : 'none';
+  }
+}
+
+function loadChatHistory() {
+  if (!elements.chatHistory) return;
+  try {
+    const history = JSON.parse(localStorage.getItem(STORAGE.chatHistory) || '[]');
+    elements.chatHistory.innerHTML = '';
+    history.slice(-20).forEach((msg) => {
+      addChatMessage(msg.content, msg.role);
+    });
+  } catch (error) {
+    console.error('Error loading chat history:', error);
+  }
+}
+
+function saveChatMessage(message) {
+  try {
+    const history = JSON.parse(localStorage.getItem(STORAGE.chatHistory) || '[]');
+    history.push({ ...message, timestamp: new Date().toISOString() });
+    // Keep only last 100 messages to avoid storage limits
+    if (history.length > 100) {
+      history.shift();
+    }
+    localStorage.setItem(STORAGE.chatHistory, JSON.stringify(history));
+  } catch (error) {
+    console.error('Error saving chat message:', error);
+  }
+}
+
+async function generateRecipeFromMeals(apiKey, meals, profile, goals) {
+  const mealNames = meals.map(m => m.dishName).join(', ') || 'ninguna aún';
+  const prompt = `Basándote en lo que el usuario ya comió hoy (${mealNames}), sugiere una receta para la próxima comida que:
+1. Complemente los macronutrientes faltantes (metas: ${goals.protein}g proteína, ${goals.carbs}g carbos, ${goals.fats}g grasas)
+2. Sea rápida y fácil de preparar
+3. Incluya ingredientes comunes
+4. Tenga instrucciones claras en 3-4 pasos
+
+Sé conciso y práctico.`;
+
+  return callNvidiaChat(apiKey, prompt);
+}
+
+async function generateWeeklySummary(apiKey, profile, goals) {
+  let weekData = { totalCals: 0, totalProtein: 0, daysWithData: 0 };
+  const today = new Date();
+  
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(today);
+    date.setDate(today.getDate() - i);
+    const dateKey = toDateKey(date);
+    const meals = getMealsForDate(dateKey);
+    if (meals.length > 0) {
+      weekData.totalCals += meals.reduce((sum, m) => sum + (m.calories || 0), 0);
+      weekData.totalProtein += meals.reduce((sum, m) => sum + (m.protein || 0), 0);
+      weekData.daysWithData += 1;
+    }
+  }
+
+  const avgCals = weekData.daysWithData > 0 ? Math.round(weekData.totalCals / weekData.daysWithData) : 0;
+  const avgProtein = weekData.daysWithData > 0 ? Math.round(weekData.totalProtein / weekData.daysWithData) : 0;
+
+  const prompt = `Analiza el progreso del usuario en la última semana:
+- Días registrados: ${weekData.daysWithData}/7
+- Promedio diario: ${avgCals} kcal, ${avgProtein}g proteína
+- Meta diaria: ${goals.calories} kcal, ${goals.protein}g proteína
+- Objetivo: ${profile?.goal || 'mantener peso'}
+
+Da un resumen motivador de 2-3 frases sobre su progreso, identifica fortalezas y sugiere una mejora concreta.`;
+
+  return callNvidiaChat(apiKey, prompt);
+}
+
+async function callNvidiaChat(apiKey, prompt) {
+  const cacheKey = 'nvidia_' + hashString(prompt);
+  const cached = assistantState.responseCache[cacheKey];
+  if (cached && Date.now() - cached.timestamp < ASSISTANT_CONFIG.cacheExpiryMs) {
+    return cached.response;
+  }
+
+  const endpoint = 'https://integrate.api.nvidia.com/v1/chat/completions';
+  const payload = {
+    model: 'meta/llama-3.1-70b-instruct',
+    messages: [
+      { role: 'system', content: 'Eres un asistente nutricional experto, amable y motivador. Responde en español de forma concisa y práctica.' },
+      { role: 'user', content: prompt }
+    ],
+    temperature: 0.7,
+    top_p: 0.9,
+    max_tokens: 500,
+  };
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error?.message || `API Error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const result = data.choices?.[0]?.message?.content || 'No se pudo generar una respuesta.';
+  
+  assistantState.responseCache[cacheKey] = {
+    response: result,
+    timestamp: Date.now(),
+  };
+  
+  return result;
+}
+
+function hashString(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return hash.toString(36);
 }
