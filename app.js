@@ -328,14 +328,14 @@ async function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
 
   const reloadOnceForUpdate = () => {
-    const flag = 'nutriscan_sw_reloaded_20260614_fix_models';
+    const flag = 'nutriscan_sw_reloaded_20260614_fix_redirect';
     if (sessionStorage.getItem(flag)) return;
     sessionStorage.setItem(flag, '1');
-    window.location.replace('./index.html?v=20260614-fix-models');
+    window.location.replace('./index.html?v=20260614-fix-redirect');
   };
 
   try {
-    const registration = await navigator.serviceWorker.register('./sw.js?v=20260614-fix-models', {
+    const registration = await navigator.serviceWorker.register('./sw.js?v=20260614-fix-redirect', {
       updateViaCache: 'none',
     });
 
@@ -347,10 +347,10 @@ async function registerServiceWorker() {
     });
 
     const reloadOnceForUpdate2 = () => {
-      const flag = 'nutriscan_sw_reloaded_20260614_fix_models';
+      const flag = 'nutriscan_sw_reloaded_20260614_fix_redirect';
       if (sessionStorage.getItem(flag)) return;
       sessionStorage.setItem(flag, '1');
-      window.location.replace('./index.html?v=20260614-fix-models');
+      window.location.replace('./index.html?v=20260614-fix-redirect');
     };
 
     let newWorker = null;
@@ -412,7 +412,17 @@ function attachEventListeners() {
   elements.deleteApiKeyButton?.addEventListener('click', deleteApiKey);
   elements.toggleAssistantVisibility?.addEventListener('click', toggleAssistantKeyVisibility);
   elements.deleteAssistantKeyButton?.addEventListener('click', deleteAssistantKey);
-  elements.chatSendButton?.addEventListener('click', sendChatMessage);
+  const chatForm = document.getElementById('chatForm');
+  if (chatForm) {
+    chatForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      sendChatMessage();
+    });
+  }
+  elements.chatSendButton?.addEventListener('click', (e) => {
+    e.preventDefault();
+    sendChatMessage();
+  });
   elements.chatInput?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -1023,7 +1033,7 @@ async function sendChatMessage() {
   const assistantKey = getAssistantApiKey();
   if (!assistantKey) {
     showToast('Configura tu API Key del Asistente en Ajustes primero.');
-    activateTab('settings');
+    setTimeout(() => activateTab('settings'), 1000);
     return;
   }
 
