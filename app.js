@@ -120,6 +120,20 @@ const elements = {
   mealList: $('#mealList'),
   clearDayButton: $('#clearDayButton'),
   profileForm: $('#profileForm'),
+  // Panel de detalles
+  mealDetailOverlay: $('#mealDetailOverlay'),
+  closeMealDetail: $('#closeMealDetail'),
+  closeMealDetailBtn: $('#closeMealDetailBtn'),
+  detailMealName: $('#detailMealName'),
+  detailMealImage: $('#detailMealImage'),
+  detailImagePlaceholder: $('#detailImagePlaceholder'),
+  detailCalories: $('#detailCalories'),
+  detailProtein: $('#detailProtein'),
+  detailCarbs: $('#detailCarbs'),
+  detailFats: $('#detailFats'),
+  detailDescription: $('#detailDescription'),
+  detailMicrosGrid: $('#detailMicrosGrid'),
+  deleteMealDetailBtn: $('#deleteMealDetailBtn'),
   profileAge: $('#profileAge'),
   profileSex: $('#profileSex'),
   profileHeight: $('#profileHeight'),
@@ -331,11 +345,11 @@ async function registerServiceWorker() {
     const flag = 'nutriscan_sw_reloaded_20260614_fix_redirect';
     if (sessionStorage.getItem(flag)) return;
     sessionStorage.setItem(flag, '1');
-    window.location.replace('./index.html?v=20260614-fix-final-chat');
+    window.location.replace('./index.html?v=20260614-fix-history-details');
   };
 
   try {
-    const registration = await navigator.serviceWorker.register('./sw.js?v=20260614-fix-final-chat', {
+    const registration = await navigator.serviceWorker.register('./sw.js?v=20260614-fix-history-details', {
       updateViaCache: 'none',
     });
 
@@ -350,7 +364,7 @@ async function registerServiceWorker() {
       const flag = 'nutriscan_sw_reloaded_20260614_fix_redirect';
       if (sessionStorage.getItem(flag)) return;
       sessionStorage.setItem(flag, '1');
-      window.location.replace('./index.html?v=20260614-fix-final-chat');
+      window.location.replace('./index.html?v=20260614-fix-history-details');
     };
 
     let newWorker = null;
@@ -407,6 +421,20 @@ function attachEventListeners() {
   elements.historyDate?.addEventListener('change', updateDashboard);
   elements.clearDayButton?.addEventListener('click', clearDay);
   elements.profileForm?.addEventListener('submit', saveProfile);
+  
+  // Eventos panel detalles
+  elements.closeMealDetail?.addEventListener('click', hideMealDetail);
+  elements.closeMealDetailBtn?.addEventListener('click', hideMealDetail);
+  elements.deleteMealDetailBtn?.addEventListener('click', () => {
+    const mealId = elements.deleteMealDetailBtn.dataset.mealId;
+    const dateKey = elements.deleteMealDetailBtn.dataset.dateKey;
+    if (mealId && dateKey) {
+      if (confirm('¿Borrar este registro?')) {
+        deleteMeal(dateKey, parseInt(mealId));
+        hideMealDetail();
+      }
+    }
+  });
   elements.goalsForm?.addEventListener('submit', saveGoals);
   elements.toggleApiVisibility?.addEventListener('click', toggleApiKeyVisibility);
   elements.deleteApiKeyButton?.addEventListener('click', deleteApiKey);
@@ -605,16 +633,71 @@ function saveMeal() {
 
   const dateKey = toDateKey(new Date());
   let meals = JSON.parse(localStorage.getItem(`meals_${dateKey}`) || '[]');
-  meals.push({
+  
+  // Guardar la imagen si existe
+  const mealToSave = {
     ...state.currentResult,
     id: Date.now(),
     timestamp: new Date().toISOString(),
-  });
+  };
+  
+  if (state.compressedImage) {
+    mealToSave.image = `data:${state.compressedImage.mimeType};base64,${state.compressedImage.base64}`;
+  }
+
+  meals.push(mealToSave);
   localStorage.setItem(`meals_${dateKey}`, JSON.stringify(meals));
 
   showToast('Comida guardada en tu historial.');
   discardResult();
   updateDashboard();
+}
+
+function showMealDetail(dateKey, mealId) {
+  const meals = getMealsForDate(dateKey);
+  const meal = meals.find(m => m.id === mealId);
+  if (!meal) return;
+
+  elements.detailMealName.textContent = meal.dish_name;
+  elements.detailCalories.textContent = Math.round(meal.calories);
+  elements.detailProtein.textContent = Math.round(meal.protein_g) + 'g';
+  elements.detailCarbs.textContent = Math.round(meal.carbs_g) + 'g';
+  elements.detailFats.textContent = Math.round(meal.fat_g) + 'g';
+  elements.detailDescription.textContent = meal.description || 'Sin descripción disponible.';
+  
+  // Imagen
+  if (meal.image) {
+    elements.detailMealImage.src = meal.image;
+    elements.detailMealImage.classList.remove('hidden');
+    elements.detailImagePlaceholder.classList.add('hidden');
+  } else {
+    elements.detailMealImage.classList.add('hidden');
+    elements.detailImagePlaceholder.classList.remove('hidden');
+  }
+
+  // Micros
+  const micros = meal.micronutrients || {};
+  const microsHtml = Object.entries(micros)
+    .filter(([_, val]) => typeof val === 'number' && val > 0)
+    .map(([key, val]) => {
+      const def = MICRONUTRIENT_DEFINITIONS.find(d => d.aliases.includes(key));
+      return `<span class="nutrient-chip">${def ? def.label : key}: ${Math.round(val)}${def ? def.unit : ''}</span>`;
+    })
+    .join('');
+  
+  elements.detailMicrosGrid.innerHTML = microsHtml || '<p class="microcopy">No hay datos de micronutrientes.</p>';
+  
+  // IDs para eliminar
+  elements.deleteMealDetailBtn.dataset.mealId = mealId;
+  elements.deleteMealDetailBtn.dataset.dateKey = dateKey;
+
+  elements.mealDetailOverlay.classList.remove('hidden');
+  document.body.style.overflow = 'hidden'; // Prevenir scroll
+}
+
+function hideMealDetail() {
+  elements.mealDetailOverlay.classList.add('hidden');
+  document.body.style.overflow = '';
 }
 
 function discardResult() {
@@ -747,11 +830,14 @@ function renderMealList(meals, selectedDate) {
   elements.mealList.innerHTML = meals
     .map(
       (meal) => `
-    <div class="meal-item">
+    <div class="meal-item" onclick="showMealDetail('${selectedDate}', ${meal.id})">
       <div class="meal-item-header">
-        <div>
-          <strong>${escapeHtml(meal.dish_name)}</strong>
-          <small>${formatTime(meal.timestamp)}</small>
+        <div style="display: flex; gap: 12px; align-items: center;">
+          ${meal.image ? `<img src="${meal.image}" style="width: 40px; height: 40px; border-radius: 8px; object-fit: cover;" />` : '<div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; font-size: 0.6rem;">IA</div>'}
+          <div>
+            <strong>${escapeHtml(meal.dish_name)}</strong>
+            <small>${formatTime(meal.timestamp)}</small>
+          </div>
         </div>
         <span class="meal-calories">${Math.round(meal.calories)} kcal</span>
       </div>
@@ -760,7 +846,6 @@ function renderMealList(meals, selectedDate) {
         <span>C: ${Math.round(meal.carbs_g)}g</span>
         <span>G: ${Math.round(meal.fat_g)}g</span>
       </div>
-      <button class="ghost-button danger small" onclick="deleteMeal('${selectedDate}', ${meal.id})">Eliminar</button>
     </div>
   `
     )

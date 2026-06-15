@@ -9,10 +9,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="NutriScan" />
   <title>NutriScan | Diario nutricional con IA</title>
-  <link rel="manifest" href="manifest.json?v=20260614-fix-final-chat" />
-  <link rel="icon" href="icons/icon.svg?v=20260614-fix-final-chat" type="image/svg+xml" />
-  <link rel="apple-touch-icon" href="icons/icon-192.png?v=20260614-fix-final-chat" />
-  <link rel="stylesheet" href="styles.css?v=20260614-fix-final-chat" />
+  <link rel="manifest" href="manifest.json?v=20260614-fix-history-details" />
+  <link rel="icon" href="icons/icon.svg?v=20260614-fix-history-details" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png?v=20260614-fix-history-details" />
+  <link rel="stylesheet" href="styles.css?v=20260614-fix-history-details" />
 </head>
 <body>
   <div class="app-shell">
@@ -170,10 +170,11 @@
               <p class="eyebrow">Historial local</p>
               <h2>Lo que comiste por día</h2>
             </div>
-            <label class="date-control" for="historyDate">
-              <span>Día</span>
-              <input id="historyDate" type="date" />
-            </label>
+          </div>
+          
+          <div class="date-selector-container">
+            <label for="historyDate">📅 Cambiar fecha:</label>
+            <input id="historyDate" type="date" class="history-date-input" />
           </div>
 
           <div class="week-strip" id="weekStrip" aria-label="Accesos rápidos de la semana"></div>
@@ -413,7 +414,7 @@
             <div class="settings-form">
               <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
                 <span>Versión</span>
-                <strong style="color: var(--primary);">2026.06.14-fix-final-chat</strong>
+                <strong style="color: var(--primary);">2026.06.14-fix-history-details</strong>
               </div>
               <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0;">
                 <span>Estado Chat</span>
@@ -429,7 +430,57 @@
     <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
   </div>
 
+  <!-- Panel de Detalles de Comida -->
+  <div id="mealDetailOverlay" class="overlay hidden">
+    <div class="overlay-backdrop" id="closeMealDetail"></div>
+    <div class="detail-panel">
+      <div class="detail-header">
+        <h2 id="detailMealName">Nombre de la comida</h2>
+        <button class="close-panel-btn" id="closeMealDetailBtn">✕</button>
+      </div>
+      <div class="detail-content">
+        <div class="detail-image-container">
+          <img id="detailMealImage" src="" alt="Comida" class="hidden" />
+          <div id="detailImagePlaceholder" class="image-placeholder">Sin imagen</div>
+        </div>
+        
+        <div class="detail-stats-grid">
+          <div class="stat-card">
+            <span id="detailCalories">0</span>
+            <small>kcal</small>
+          </div>
+          <div class="stat-card">
+            <span id="detailProtein">0g</span>
+            <small>Proteína</small>
+          </div>
+          <div class="stat-card">
+            <span id="detailCarbs">0g</span>
+            <small>Carbos</small>
+          </div>
+          <div class="stat-card">
+            <span id="detailFats">0g</span>
+            <small>Grasas</small>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <h3>Descripción y Análisis</h3>
+          <p id="detailDescription" class="detail-text"></p>
+        </div>
+
+        <div id="detailMicrosSection" class="detail-section">
+          <h3>Micronutrientes</h3>
+          <div id="detailMicrosGrid" class="nutrient-chip-grid"></div>
+        </div>
+
+        <div class="detail-actions">
+          <button class="ghost-button danger" id="deleteMealDetailBtn">Eliminar registro</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <canvas id="compressionCanvas" class="sr-only" aria-hidden="true"></canvas>
-  <script src="app.js?v=20260614-fix-final-chat" defer></script>
+  <script src="app.js?v=20260614-fix-history-details" defer></script>
 </body>
 </html>
