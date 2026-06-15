@@ -100,37 +100,25 @@ const elements = {
   dailyCalorieRing: $('#dailyCalorieRing'),
   dailyCalories: $('#dailyCalories'),
   dailySummaryText: $('#dailySummaryText'),
-  dailyProtein: $('#dailyProtein'),
-  dailyCarbs: $('#dailyCarbs'),
-  dailyFats: $('#dailyFats'),
-  proteinBar: $('#proteinBar'),
-  carbsBar: $('#carbsBar'),
-  fatsBar: $('#fatsBar'),
-  mealList: $('#mealList'),
-  clearDayButton: $('#clearDayButton'),
-  apiForm: $('#apiForm'),
-  apiKeyInput: $('#apiKeyInput'),
-  toggleApiVisibility: $('#toggleApiVisibility'),
-  deleteApiKeyButton: $('#deleteApiKeyButton'),
-  apiFormStatus: $('#apiFormStatus'),
-  goalsForm: $('#goalsForm'),
-  goalCalories: $('#goalCalories'),
-  goalProtein: $('#goalProtein'),
-  goalCarbs: $('#goalCarbs'),
-  goalFats: $('#goalFats'),
-  goalsFormStatus: $('#goalsFormStatus'),
-  toast: $('#toast'),
-  installButton: $('#installButton'),
-  mealContext: $('#mealContext'),
   dailyTargetLine: $('#dailyTargetLine'),
+  dailyProtein: $('#dailyProtein'),
   targetProtein: $('#targetProtein'),
+  proteinBar: $('#proteinBar'),
+  dailyCarbs: $('#dailyCarbs'),
   targetCarbs: $('#targetCarbs'),
+  carbsBar: $('#carbsBar'),
+  dailyFats: $('#dailyFats'),
   targetFats: $('#targetFats'),
+  fatsBar: $('#fatsBar'),
+  goalComparisonCard: $('#goalComparisonCard'),
   calorieDelta: $('#calorieDelta'),
   comparisonAdvice: $('#comparisonAdvice'),
+  dailyMicronutrientCard: $('#dailyMicronutrientCard'),
   dailyMicronutrientHighlights: $('#dailyMicronutrientHighlights'),
   dailyHydrationBioactives: $('#dailyHydrationBioactives'),
   dailyMicronutrientNote: $('#dailyMicronutrientNote'),
+  mealList: $('#mealList'),
+  clearDayButton: $('#clearDayButton'),
   profileForm: $('#profileForm'),
   profileAge: $('#profileAge'),
   profileSex: $('#profileSex'),
@@ -139,201 +127,49 @@ const elements = {
   profileActivity: $('#profileActivity'),
   profileGoal: $('#profileGoal'),
   profileFormStatus: $('#profileFormStatus'),
+  profileRecommendation: $('#profileRecommendation'),
   profileCalories: $('#profileCalories'),
+  profileCalorieRing: $('#profileCalorieRing'),
   profileProtein: $('#profileProtein'),
   profileCarbs: $('#profileCarbs'),
   profileFats: $('#profileFats'),
-  profileSummaryText: $('#profileSummaryText'),
-  profileAdvice: $('#profileAdvice'),
-  assistantStatus: $('#assistantStatus'),
-  assistantLock: $('#assistantLock'),
-  chatContainer: $('#chatContainer'),
-  chatHistory: $('#chatHistory'),
-  chatForm: $('#chatForm'),
-  chatInput: $('#chatInput'),
-  sendChatButton: $('#sendChatButton'),
+  goalsForm: $('#goalsForm'),
+  goalCalories: $('#goalCalories'),
+  goalProtein: $('#goalProtein'),
+  goalCarbs: $('#goalCarbs'),
+  goalFats: $('#goalFats'),
+  goalsFormStatus: $('#goalsFormStatus'),
+  apiKeyForm: $('#apiKeyForm'),
+  apiKeyInput: $('#apiKeyInput'),
+  toggleApiVisibility: $('#toggleApiVisibility'),
+  deleteApiKeyButton: $('#deleteApiKeyButton'),
+  apiFormStatus: $('#apiFormStatus'),
   assistantKeyForm: $('#assistantKeyForm'),
   assistantKeyInput: $('#assistantKeyInput'),
   toggleAssistantVisibility: $('#toggleAssistantVisibility'),
   deleteAssistantKeyButton: $('#deleteAssistantKeyButton'),
-  saveAssistantKeyButton: $('#saveAssistantKeyButton'),
   assistantKeyFormStatus: $('#assistantKeyFormStatus'),
+  assistantStatus: $('#assistantStatus'),
+  assistantLock: $('#assistantLock'),
+  chatContainer: $('#chatContainer'),
+  chatHistory: $('#chatHistory'),
+  chatInput: $('#chatInput'),
+  chatSendButton: $('#chatSendButton'),
+  installButton: $('#installButton'),
 };
 
-document.addEventListener('DOMContentLoaded', init);
+const ASSISTANT_CONFIG = {
+  rateLimitMs: 1000,
+  maxRequestsPerHour: 60,
+  cacheExpiryMs: 1800000,
+};
 
-function init() {
-  registerServiceWorker();
-  setupTabs();
-  setupScanner();
-  setupDashboard();
-  setupSettings();
-  setupAssistant();
-  setupInstallPrompt();
-  refreshApiState();
-  refreshAssistantState();
-  loadProfileIntoForm();
-  loadGoalsIntoForm();
-  renderProfileSummary();
-  renderDashboard();
-  loadChatHistory();
-}
-
-function setupTabs() {
-  elements.tabButtons.forEach((button) => {
-    button.addEventListener('click', () => activateTab(button.dataset.tab));
-  });
-
-  $$('[data-go-settings]').forEach((button) => {
-    button.addEventListener('click', () => activateTab('settings'));
-  });
-}
-
-function activateTab(tabId) {
-  elements.tabButtons.forEach((button) => {
-    const isActive = button.dataset.tab === tabId;
-    button.classList.toggle('active', isActive);
-    button.setAttribute('aria-selected', String(isActive));
-  });
-
-  elements.views.forEach((view) => {
-    view.classList.toggle('active', view.id === tabId);
-  });
-
-  if (tabId === 'dashboard') {
-    renderDashboard();
-  }
-
-  if (tabId === 'profile') {
-    renderProfileSummary();
-  }
-}
-
-function setupScanner() {
-  elements.cameraButton.addEventListener('click', () => elements.cameraInput.click());
-  elements.uploadButton.addEventListener('click', () => elements.fileInput.click());
-  elements.cameraInput.addEventListener('change', (event) => handleFileSelection(event.target.files?.[0]));
-  elements.fileInput.addEventListener('change', (event) => handleFileSelection(event.target.files?.[0]));
-  elements.analyzeButton.addEventListener('click', analyzeCurrentImage);
-  elements.saveMealButton.addEventListener('click', saveCurrentMeal);
-  elements.discardResultButton.addEventListener('click', clearResult);
-
-  ['dragenter', 'dragover'].forEach((eventName) => {
-    elements.previewFrame.addEventListener(eventName, (event) => {
-      event.preventDefault();
-      elements.previewFrame.classList.add('drag-over');
-    });
-  });
-
-  ['dragleave', 'drop'].forEach((eventName) => {
-    elements.previewFrame.addEventListener(eventName, (event) => {
-      event.preventDefault();
-      elements.previewFrame.classList.remove('drag-over');
-    });
-  });
-
-  elements.previewFrame.addEventListener('drop', (event) => {
-    const file = event.dataTransfer?.files?.[0];
-    handleFileSelection(file);
-  });
-}
-
-async function handleFileSelection(file) {
-  if (!file) return;
-
-  if (!file.type.startsWith('image/')) {
-    showToast('Selecciona una imagen válida.');
-    return;
-  }
-
-  try {
-    setBusy(true, 'Comprimiendo imagen...');
-    const compressed = await compressImage(file, 800, 0.6);
-    state.compressedImage = compressed;
-    state.currentResult = null;
-
-    elements.imagePreview.src = compressed.dataUrl;
-    elements.imagePreview.classList.remove('hidden');
-    elements.emptyPreview.classList.add('hidden');
-    elements.compressionInfo.textContent = `Imagen lista: ${(compressed.size / 1024).toFixed(0)} KB, ${compressed.width}×${compressed.height}px.`;
-    elements.analyzeButton.disabled = !hasApiKey();
-    clearResult(false);
-  } catch (error) {
-    console.error(error);
-    showToast('No se pudo procesar la imagen. Intenta con otro archivo.');
-  } finally {
-    setBusy(false);
-  }
-}
-
-function compressImage(file, maxWidth = 800, quality = 0.6) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      const img = new Image();
-
-      img.onload = () => {
-        const scale = Math.min(1, maxWidth / img.width);
-        const width = Math.max(1, Math.round(img.width * scale));
-        const height = Math.max(1, Math.round(img.height * scale));
-        const canvas = $('#compressionCanvas');
-        const ctx = canvas.getContext('2d', { alpha: false });
-
-        canvas.width = width;
-        canvas.height = height;
-        ctx.fillStyle = '#081a14';
-        ctx.fillRect(0, 0, width, height);
-        ctx.drawImage(img, 0, 0, width, height);
-
-        const dataUrl = canvas.toDataURL('image/jpeg', quality);
-        const base64 = dataUrl.split(',')[1];
-        resolve({ dataUrl, base64, mimeType: 'image/jpeg', width, height, size: estimateBase64Bytes(base64) });
-      };
-
-      img.onerror = reject;
-      img.src = reader.result;
-    };
-
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-function estimateBase64Bytes(base64) {
-  const padding = (base64.match(/=+$/) || [''])[0].length;
-  return Math.floor((base64.length * 3) / 4) - padding;
-}
-
-async function analyzeCurrentImage() {
-  const apiKey = getApiKey();
-
-  if (!apiKey) {
-    showToast('Primero configura tu API Key en Ajustes.');
-    activateTab('settings');
-    return;
-  }
-
-  if (!state.compressedImage) {
-    showToast('Primero selecciona o toma una foto.');
-    return;
-  }
-
-  setBusy(true, 'Analizando con Gemini...');
-
-  try {
-    const result = await callGemini(apiKey, state.compressedImage, elements.mealContext?.value.trim() || '');
-    const normalized = normalizeGeminiResult(result);
-    state.currentResult = normalized;
-    renderResult(normalized);
-    showToast('Análisis listo. Revisa y guarda la comida.');
-  } catch (error) {
-    console.error(error);
-    showToast(error.message || 'No se pudo analizar la imagen. Verifica tu API Key o intenta nuevamente.');
-  } finally {
-    setBusy(false);
-  }
-}
+const assistantState = {
+  lastRequestTime: 0,
+  requestsThisHour: 0,
+  hourStartTime: Date.now(),
+  responseCache: {},
+};
 
 async function callGemini(apiKey, image, mealContext = '') {
   const contextText = mealContext
@@ -443,669 +279,631 @@ function shouldTryNextModel(status, message) {
 function parseGeminiJson(text) {
   try {
     return JSON.parse(text);
-  } catch (error) {
-    const cleaned = text.replace(/^```json/i, '').replace(/^```/i, '').replace(/```$/i, '').trim();
-    return JSON.parse(cleaned);
-  }
-}
-
-function normalizeGeminiResult(raw) {
-  const calories = clampNumber(raw.calories ?? raw.kcal ?? raw.energy, 0, 10000);
-  const protein = clampNumber(raw.protein_g ?? raw.protein ?? raw.proteins, 0, 1000);
-  const carbs = clampNumber(raw.carbs_g ?? raw.carbohydrates_g ?? raw.carbs, 0, 1000);
-  const fats = clampNumber(raw.fat_g ?? raw.fats_g ?? raw.fat ?? raw.fats, 0, 1000);
-  const confidence = clampNumber(raw.confidence ?? 0.75, 0, 1);
-  const micronutrientConfidence = clampNumber(raw.micronutrient_confidence ?? raw.micronutrients_confidence ?? raw.micronutrientConfidence ?? confidence * 0.75, 0, 1);
-
-  return {
-    id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
-    dishName: String(raw.dish_name ?? raw.name ?? raw.plato ?? 'Comida detectada').trim() || 'Comida detectada',
-    calories: Math.round(calories),
-    protein: roundMacro(protein),
-    carbs: roundMacro(carbs),
-    fats: roundMacro(fats),
-    confidence,
-    micronutrientConfidence,
-    notes: String(raw.notes ?? 'Estimación generada por IA; puede variar según porción e ingredientes.').trim(),
-    review: String(raw.review ?? raw.food_review ?? raw.reseña ?? raw.resena ?? 'Buena referencia para registrar tu comida; la IA recomienda revisar porción e ingredientes si querés mayor precisión.').trim(),
-    micronutrients: normalizeMicronutrients(raw.micronutrients ?? raw.micros ?? raw.micronutrientes ?? raw),
-    hydration: normalizeHydration(raw.hydration ?? raw.agua ?? raw.water ?? raw),
-    bioactives: normalizeBioactives(raw.bioactives ?? raw.compuestos_bioactivos ?? raw.compounds ?? raw),
-    modelUsed: String(raw.model_used ?? '').trim(),
-    context: elements.mealContext?.value.trim() || '',
-    photoDataUrl: state.compressedImage?.dataUrl || '',
-    createdAt: new Date().toISOString(),
-  };
-}
-
-function normalizeMicronutrients(source = {}) {
-  return MICRONUTRIENT_DEFINITIONS.reduce((acc, nutrient) => {
-    acc[nutrient.key] = roundMicro(readNumberFromAliases(source, nutrient.aliases), nutrient.unit);
-    return acc;
-  }, {});
-}
-
-function normalizeHydration(source = {}) {
-  return {
-    waterG: Math.round(clampNumber(source.water_g ?? source.agua_g ?? source.waterG ?? source.water ?? 0, 0, 5000)),
-    waterPercent: Math.round(clampNumber(source.water_percent ?? source.agua_percent ?? source.waterPercent ?? 0, 0, 100)),
-  };
-}
-
-function normalizeBioactives(source = {}) {
-  return {
-    antioxidants: normalizeBioactiveLevel(source.antioxidants ?? source.antioxidantes),
-    polyphenols: normalizeBioactiveLevel(source.polyphenols ?? source.polifenoles),
-    flavonoids: normalizeBioactiveLevel(source.flavonoids ?? source.flavonoides),
-    notes: String(source.notes ?? source.notas ?? '').trim(),
-  };
-}
-
-function normalizeBioactiveLevel(value) {
-  const normalized = String(value ?? 'sin dato').trim().toLowerCase();
-  return BIOACTIVE_LEVELS.includes(normalized) ? normalized : 'sin dato';
-}
-
-function readNumberFromAliases(source, aliases) {
-  if (!source || typeof source !== 'object') return 0;
-  for (const alias of aliases) {
-    if (source[alias] !== undefined && source[alias] !== null) {
-      return clampNumber(source[alias], 0, 100000);
+  } catch {
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        return JSON.parse(jsonMatch[0]);
+      } catch {
+        throw new Error('No se pudo parsear la respuesta JSON de Gemini.');
+      }
     }
+    throw new Error('Gemini no devolvió JSON válido.');
   }
-  return 0;
 }
 
-function roundMicro(value, unit) {
-  const number = Number(value) || 0;
-  if (unit === 'mcg') return Math.round(number * 10) / 10;
-  if (number < 10) return Math.round(number * 10) / 10;
-  return Math.round(number);
+function escapeHtml(text) {
+  const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+  return text.replace(/[&<>"']/g, (m) => map[m]);
 }
 
-function clampNumber(value, min, max) {
-  const number = Number(value);
-  if (!Number.isFinite(number)) return min;
-  return Math.min(max, Math.max(min, number));
+function formatTime(isoString) {
+  const date = new Date(isoString);
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${hours}:${minutes}`;
 }
 
-function roundMacro(value) {
-  return Math.round(value * 10) / 10;
+function toDateKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
-function renderResult(result) {
+function initializeApp() {
+  registerServiceWorker();
+  initializeElements();
+  attachEventListeners();
+  loadProfile();
+  loadGoals();
+  loadChatHistory();
+  refreshAssistantState();
+  updateDashboard();
+  handleInstallPrompt();
+  syncWithLocalStorage();
+}
+
+async function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+
+  const reloadOnceForUpdate = () => {
+    const flag = 'nutriscan_sw_reloaded_20260614_fix_models';
+    if (sessionStorage.getItem(flag)) return;
+    sessionStorage.setItem(flag, '1');
+    window.location.replace('./index.html?v=20260614-fix-models');
+  };
+
+  try {
+    const registration = await navigator.serviceWorker.register('./sw.js?v=20260614-fix-models', {
+      updateViaCache: 'none',
+    });
+
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      if (event.data?.type === 'NUTRISCAN_UPDATED') {
+        console.log('App actualizada a versión:', event.data.version);
+        reloadOnceForUpdate();
+      }
+    });
+
+    const reloadOnceForUpdate2 = () => {
+      const flag = 'nutriscan_sw_reloaded_20260614_fix_models';
+      if (sessionStorage.getItem(flag)) return;
+      sessionStorage.setItem(flag, '1');
+      window.location.replace('./index.html?v=20260614-fix-models');
+    };
+
+    let newWorker = null;
+    registration.addEventListener('updatefound', () => {
+      newWorker = registration.installing;
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          showToast('Nueva versión disponible. Recargando...');
+          reloadOnceForUpdate2();
+        }
+      });
+    });
+
+    navigator.serviceWorker.addEventListener('controllerchange', reloadOnceForUpdate);
+  } catch (error) {
+    console.warn('Service Worker registration failed:', error);
+  }
+}
+
+function initializeElements() {
+  elements.tabButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const tabName = btn.dataset.tab;
+      activateTab(tabName);
+    });
+  });
+}
+
+function attachEventListeners() {
+  elements.cameraButton?.addEventListener('click', () => elements.cameraInput?.click());
+  elements.uploadButton?.addEventListener('click', () => elements.fileInput?.click());
+  elements.cameraInput?.addEventListener('change', handleFileSelect);
+  elements.fileInput?.addEventListener('change', handleFileSelect);
+  elements.dropZone?.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    elements.dropZone.classList.add('drag-over');
+  });
+  elements.dropZone?.addEventListener('dragleave', () => {
+    elements.dropZone.classList.remove('drag-over');
+  });
+  elements.dropZone?.addEventListener('drop', (e) => {
+    e.preventDefault();
+    elements.dropZone.classList.remove('drag-over');
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      const event = new Event('change', { bubbles: true });
+      Object.defineProperty(event, 'target', { value: { files }, enumerable: true });
+      handleFileSelect(event);
+    }
+  });
+  elements.analyzeButton?.addEventListener('click', analyzeImage);
+  elements.saveMealButton?.addEventListener('click', saveMeal);
+  elements.discardResultButton?.addEventListener('click', discardResult);
+  elements.historyDate?.addEventListener('change', updateDashboard);
+  elements.clearDayButton?.addEventListener('click', clearDay);
+  elements.profileForm?.addEventListener('submit', saveProfile);
+  elements.goalsForm?.addEventListener('submit', saveGoals);
+  elements.toggleApiVisibility?.addEventListener('click', toggleApiKeyVisibility);
+  elements.deleteApiKeyButton?.addEventListener('click', deleteApiKey);
+  elements.toggleAssistantVisibility?.addEventListener('click', toggleAssistantKeyVisibility);
+  elements.deleteAssistantKeyButton?.addEventListener('click', deleteAssistantKey);
+  elements.chatSendButton?.addEventListener('click', sendChatMessage);
+  elements.chatInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendChatMessage();
+    }
+  });
+  document.querySelectorAll('[data-go-settings]').forEach((btn) => {
+    btn.addEventListener('click', () => activateTab('settings'));
+  });
+}
+
+function activateTab(tabName) {
+  elements.tabButtons.forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.tab === tabName);
+    btn.setAttribute('aria-selected', btn.dataset.tab === tabName);
+  });
+  elements.views.forEach((view) => {
+    view.classList.toggle('active', view.id === tabName);
+  });
+  if (tabName === 'dashboard') {
+    updateDashboard();
+  }
+}
+
+async function handleFileSelect(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  if (!file.type.startsWith('image/')) {
+    showToast('Por favor selecciona una imagen.');
+    return;
+  }
+
+  try {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const img = new Image();
+      img.onload = async () => {
+        const canvas = document.getElementById('compressionCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+
+        const maxWidth = 1024;
+        const maxHeight = 1024;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            const reader2 = new FileReader();
+            reader2.onload = (e2) => {
+              const base64 = e2.target.result.split(',')[1];
+              state.compressedImage = {
+                base64,
+                mimeType: file.type,
+                originalSize: file.size,
+                compressedSize: blob.size,
+              };
+
+              elements.imagePreview.src = e2.target.result;
+              elements.imagePreview.classList.remove('hidden');
+              elements.emptyPreview.classList.add('hidden');
+              elements.compressionInfo.textContent = `Imagen comprimida: ${(blob.size / 1024).toFixed(1)} KB (original: ${(file.size / 1024).toFixed(1)} KB)`;
+              elements.analyzeButton.disabled = false;
+            };
+            reader2.readAsDataURL(blob);
+          },
+          file.type,
+          0.85
+        );
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  } catch (error) {
+    console.error('Error al procesar imagen:', error);
+    showToast('Error al procesar la imagen.');
+  }
+}
+
+async function analyzeImage() {
+  if (!state.compressedImage) {
+    showToast('Selecciona una imagen primero.');
+    return;
+  }
+
+  const apiKey = localStorage.getItem(STORAGE.apiKey);
+  if (!apiKey) {
+    showToast('Configura tu API Key primero.');
+    activateTab('settings');
+    return;
+  }
+
+  elements.analyzeButton.disabled = true;
+  elements.buttonLoader.classList.remove('hidden');
+
+  try {
+    const mealContext = document.getElementById('mealContext')?.value || '';
+    const result = await callGemini(apiKey, state.compressedImage, mealContext);
+    state.currentResult = result;
+    displayResult(result);
+  } catch (error) {
+    console.error('Error analyzing image:', error);
+    showToast(`Error: ${error.message}`);
+  } finally {
+    elements.analyzeButton.disabled = false;
+    elements.buttonLoader.classList.add('hidden');
+  }
+}
+
+function displayResult(result) {
   elements.resultEmpty.classList.add('hidden');
   elements.resultPanel.classList.remove('hidden');
-  elements.mealName.textContent = result.dishName;
-  elements.confidenceChip.textContent = result.modelUsed
-    ? `${Math.round(result.confidence * 100)}% · ${result.modelUsed.replace('gemini-', '')}`
-    : `${Math.round(result.confidence * 100)}% confianza`;
-  elements.calorieValue.textContent = String(result.calories);
-  elements.proteinValue.textContent = `${formatNumber(result.protein)} g`;
-  elements.carbsValue.textContent = `${formatNumber(result.carbs)} g`;
-  elements.fatsValue.textContent = `${formatNumber(result.fats)} g`;
-  elements.mealNotes.textContent = result.notes;
-  elements.foodReview.textContent = result.review;
-  renderMicronutrientPanel(result);
 
-  const goals = getGoals();
-  const degrees = Math.min(360, Math.round((result.calories / goals.calories) * 360));
-  elements.calorieRing.style.setProperty('--progress', `${degrees}deg`);
-}
+  elements.mealName.textContent = result.dish_name || 'Comida desconocida';
+  elements.calorieValue.textContent = Math.round(result.calories || 0);
+  elements.calorieRing.style.setProperty('--progress', `${Math.min((result.calories / 600) * 360, 360)}deg`);
+  elements.confidenceChip.textContent = `${Math.round((result.confidence || 0) * 100)}%`;
+  elements.mealNotes.textContent = result.notes || 'Sin notas adicionales.';
+  elements.foodReview.textContent = result.review || 'Reseña no disponible.';
 
-function renderMicronutrientPanel(result) {
-  if (!elements.micronutrientHighlights) return;
-  elements.micronutrientHighlights.innerHTML = buildNutrientChips(result.micronutrients, 8);
-  elements.hydrationBioactives.innerHTML = buildHydrationBioactives(result.hydration, result.bioactives);
-  elements.micronutrientConfidence.textContent = `Confianza micro: ${Math.round((result.micronutrientConfidence ?? 0) * 100)}%`;
-}
+  elements.proteinValue.textContent = `${Math.round(result.protein_g || 0)} g`;
+  elements.carbsValue.textContent = `${Math.round(result.carbs_g || 0)} g`;
+  elements.fatsValue.textContent = `${Math.round(result.fat_g || 0)} g`;
 
-function buildNutrientChips(micronutrients = {}, limit = 8) {
-  const selected = getDisplayNutrients(micronutrients, limit);
-  if (!selected.length) {
-    return '<p class="microcopy nutrient-empty">Sin micronutrientes destacables estimados para esta porción.</p>';
+  elements.micronutrientConfidence.textContent = `Confianza: ${Math.round((result.micronutrient_confidence || 0) * 100)}%`;
+
+  const micronutrients = result.micronutrients || {};
+  const highlights = MICRONUTRIENT_PRIORITY.map((key) => {
+    const def = MICRONUTRIENT_DEFINITIONS.find((d) => d.key === key);
+    if (!def) return null;
+    const aliases = def.aliases;
+    const value = aliases.reduce((acc, alias) => acc || micronutrients[alias], null);
+    return value ? { def, value } : null;
+  }).filter(Boolean);
+
+  elements.micronutrientHighlights.innerHTML = highlights
+    .slice(0, 6)
+    .map((h) => `<span class="nutrient-chip">${h.def.label}: ${Math.round(h.value)} ${h.def.unit}</span>`)
+    .join('');
+
+  const hydration = result.hydration || {};
+  const bioactives = result.bioactives || {};
+  let hydrationBioactivesHtml = '';
+  if (hydration.water_g) {
+    hydrationBioactivesHtml += `<div class="component-item"><span>Agua</span><strong>${Math.round(hydration.water_g)}g (${Math.round(hydration.water_percent || 0)}%)</strong></div>`;
   }
-
-  return selected.map(({ definition, value }) => `
-    <span class="nutrient-chip" title="${escapeAttribute(definition.fullLabel)}">
-      <small>${escapeHtml(definition.label)}</small>
-      <strong>${formatMicroValue(value, definition.unit)}</strong>
-    </span>
-  `).join('');
+  if (bioactives.antioxidants) {
+    hydrationBioactivesHtml += `<div class="component-item"><span>Antioxidantes</span><strong>${bioactives.antioxidants}</strong></div>`;
+  }
+  if (bioactives.polyphenols) {
+    hydrationBioactivesHtml += `<div class="component-item"><span>Polifenoles</span><strong>${bioactives.polyphenols}</strong></div>`;
+  }
+  if (bioactives.flavonoids) {
+    hydrationBioactivesHtml += `<div class="component-item"><span>Flavonoides</span><strong>${bioactives.flavonoids}</strong></div>`;
+  }
+  elements.hydrationBioactives.innerHTML = hydrationBioactivesHtml || '<p class="microcopy">Sin datos adicionales.</p>';
 }
 
-function getDisplayNutrients(micronutrients = {}, limit = 8) {
-  const withValues = MICRONUTRIENT_DEFINITIONS
-    .map((definition) => ({ definition, value: Number(micronutrients[definition.key]) || 0 }))
-    .filter((item) => item.value > 0);
+function saveMeal() {
+  if (!state.currentResult) return;
 
-  const priority = withValues
-    .filter((item) => MICRONUTRIENT_PRIORITY.includes(item.definition.key))
-    .sort((a, b) => MICRONUTRIENT_PRIORITY.indexOf(a.definition.key) - MICRONUTRIENT_PRIORITY.indexOf(b.definition.key));
-  const rest = withValues
-    .filter((item) => !MICRONUTRIENT_PRIORITY.includes(item.definition.key))
-    .sort((a, b) => b.value - a.value);
+  const dateKey = toDateKey(new Date());
+  let meals = JSON.parse(localStorage.getItem(`meals_${dateKey}`) || '[]');
+  meals.push({
+    ...state.currentResult,
+    id: Date.now(),
+    timestamp: new Date().toISOString(),
+  });
+  localStorage.setItem(`meals_${dateKey}`, JSON.stringify(meals));
 
-  return [...priority, ...rest].slice(0, limit);
+  showToast('Comida guardada en tu historial.');
+  discardResult();
+  updateDashboard();
 }
 
-function buildHydrationBioactives(hydration = {}, bioactives = {}) {
-  const water = Number(hydration.waterG) || 0;
-  const waterPercent = Number(hydration.waterPercent) || 0;
-  const bioactiveNote = bioactives.notes ? `<p class="component-note">${escapeHtml(bioactives.notes)}</p>` : '';
-
-  return `
-    <div class="component-card water">
-      <span>Agua estimada</span>
-      <strong>${water ? `${formatNumber(water)} g` : 'Sin dato'}</strong>
-      <small>${waterPercent ? `${waterPercent}% de la porción` : 'Depende de preparación'}</small>
-    </div>
-    <div class="component-card">
-      <span>Antioxidantes</span>
-      <strong>${capitalizeText(bioactives.antioxidants || 'sin dato')}</strong>
-      <small>Protectores celulares</small>
-    </div>
-    <div class="component-card">
-      <span>Polifenoles</span>
-      <strong>${capitalizeText(bioactives.polyphenols || 'sin dato')}</strong>
-      <small>Compuestos vegetales</small>
-    </div>
-    <div class="component-card">
-      <span>Flavonoides</span>
-      <strong>${capitalizeText(bioactives.flavonoids || 'sin dato')}</strong>
-      <small>Según ingredientes</small>
-    </div>
-    ${bioactiveNote}
-  `;
-}
-
-function formatMicroValue(value, unit) {
-  const number = Number(value) || 0;
-  const formatted = unit === 'mcg' || number < 10 ? formatNumber(number) : String(Math.round(number));
-  return `${formatted} ${unit}`;
-}
-
-function capitalizeText(value) {
-  const text = String(value || 'sin dato');
-  return text.charAt(0).toUpperCase() + text.slice(1);
-}
-
-function clearResult(clearImage = true) {
+function discardResult() {
   state.currentResult = null;
-  elements.resultPanel.classList.add('hidden');
   elements.resultEmpty.classList.remove('hidden');
-
-  if (clearImage) {
-    state.compressedImage = null;
-    elements.imagePreview.removeAttribute('src');
-    elements.imagePreview.classList.add('hidden');
-    elements.emptyPreview.classList.remove('hidden');
-    elements.compressionInfo.textContent = 'Aún no se seleccionó ninguna imagen.';
-    elements.analyzeButton.disabled = true;
-  }
+  elements.resultPanel.classList.add('hidden');
+  elements.imagePreview.classList.add('hidden');
+  elements.emptyPreview.classList.remove('hidden');
+  elements.compressionInfo.textContent = 'Aún no se seleccionó ninguna imagen.';
+  elements.analyzeButton.disabled = true;
+  elements.cameraInput.value = '';
+  elements.fileInput.value = '';
+  document.getElementById('mealContext').value = '';
 }
 
-function saveCurrentMeal() {
-  if (!state.currentResult) {
-    showToast('No hay resultado para guardar.');
-    return;
-  }
+function updateDashboard() {
+  const selectedDate = elements.historyDate?.value || toDateKey(new Date());
+  elements.historyDate.value = selectedDate;
 
-  const dateKey = toDateKey(new Date(state.currentResult.createdAt));
-  const meals = getMealsForDate(dateKey);
-  meals.push(state.currentResult);
-  saveMealsForDate(dateKey, meals);
-
-  state.selectedDate = dateKey;
-  elements.historyDate.value = dateKey;
-  showToast('Comida guardada en tu historial local.');
-  clearResult(true);
-  renderDashboard();
-  activateTab('dashboard');
-}
-
-function setupDashboard() {
-  elements.historyDate.value = state.selectedDate;
-  elements.historyDate.addEventListener('change', () => {
-    state.selectedDate = elements.historyDate.value || toDateKey(new Date());
-    renderDashboard();
-  });
-
-  elements.clearDayButton.addEventListener('click', () => {
-    const meals = getMealsForDate(state.selectedDate);
-    if (!meals.length) {
-      showToast('Ese día no tiene comidas guardadas.');
-      return;
-    }
-
-    const confirmed = window.confirm('¿Borrar todas las comidas guardadas para este día?');
-    if (!confirmed) return;
-
-    localStorage.removeItem(dayStorageKey(state.selectedDate));
-    renderDashboard();
-    showToast('Día borrado.');
-  });
-}
-
-function renderDashboard() {
-  elements.historyDate.value = state.selectedDate;
-  renderWeekStrip();
-
-  const meals = getMealsForDate(state.selectedDate);
-  const totals = meals.reduce((acc, meal) => {
-    acc.calories += Number(meal.calories) || 0;
-    acc.protein += Number(meal.protein) || 0;
-    acc.carbs += Number(meal.carbs) || 0;
-    acc.fats += Number(meal.fats) || 0;
-    return acc;
-  }, { calories: 0, protein: 0, carbs: 0, fats: 0 });
-  const microTotals = aggregateMealComponents(meals);
+  const meals = getMealsForDate(selectedDate);
+  const totalCals = meals.reduce((sum, m) => sum + (m.calories || 0), 0);
+  const totalProtein = meals.reduce((sum, m) => sum + (m.protein_g || 0), 0);
+  const totalCarbs = meals.reduce((sum, m) => sum + (m.carbs_g || 0), 0);
+  const totalFats = meals.reduce((sum, m) => sum + (m.fat_g || 0), 0);
 
   const goals = getGoals();
-  const calorieDegrees = Math.min(360, Math.round((totals.calories / goals.calories) * 360));
-  const calorieDiff = Math.round(goals.calories - totals.calories);
+  elements.dailyCalories.textContent = Math.round(totalCals);
+  elements.dailyCalorieRing.style.setProperty('--progress', `${Math.min((totalCals / goals.calories) * 360, 360)}deg`);
 
-  elements.dailyCalorieRing.style.setProperty('--progress', `${calorieDegrees}deg`);
-  elements.dailyCalories.textContent = String(Math.round(totals.calories));
-  elements.dailyProtein.textContent = `${formatNumber(totals.protein)} g`;
-  elements.dailyCarbs.textContent = `${formatNumber(totals.carbs)} g`;
-  elements.dailyFats.textContent = `${formatNumber(totals.fats)} g`;
-  if (elements.dailyTargetLine) elements.dailyTargetLine.textContent = `Meta: ${Math.round(goals.calories)} kcal · P ${formatNumber(goals.protein)} g · C ${formatNumber(goals.carbs)} g · G ${formatNumber(goals.fats)} g`;
-  if (elements.targetProtein) elements.targetProtein.textContent = `${formatNumber(goals.protein)} g`;
-  if (elements.targetCarbs) elements.targetCarbs.textContent = `${formatNumber(goals.carbs)} g`;
-  if (elements.targetFats) elements.targetFats.textContent = `${formatNumber(goals.fats)} g`;
-  if (elements.calorieDelta) elements.calorieDelta.textContent = formatCalorieDelta(calorieDiff);
-  if (elements.comparisonAdvice) elements.comparisonAdvice.textContent = buildComparisonAdvice(totals, goals);
-  elements.proteinBar.style.width = `${toPercent(totals.protein, goals.protein)}%`;
-  elements.carbsBar.style.width = `${toPercent(totals.carbs, goals.carbs)}%`;
-  elements.fatsBar.style.width = `${toPercent(totals.fats, goals.fats)}%`;
-  renderDailyMicronutrients(microTotals, meals.length);
+  const caloriePercent = Math.round((totalCals / goals.calories) * 100);
+  elements.dailySummaryText.textContent = `${caloriePercent}% de tu meta (${Math.round(totalCals)} / ${goals.calories} kcal)`;
 
-  const readableDate = formatDateLong(state.selectedDate);
-  elements.dailySummaryText.textContent = meals.length
-    ? `${readableDate}: ${meals.length} comida${meals.length === 1 ? '' : 's'} guardada${meals.length === 1 ? '' : 's'}.`
-    : `${readableDate}: todavía no guardaste comidas.`;
+  if (caloriePercent > 100) {
+    elements.dailyTargetLine.textContent = `Meta alcanzada: +${Math.round(totalCals - goals.calories)} kcal`;
+  } else if (caloriePercent > 0) {
+    elements.dailyTargetLine.textContent = `Te faltan ${Math.round(goals.calories - totalCals)} kcal`;
+  } else {
+    elements.dailyTargetLine.textContent = 'Meta: completa tu perfil para personalizarla.';
+  }
 
-  renderMealList(meals);
+  elements.dailyProtein.textContent = Math.round(totalProtein);
+  elements.targetProtein.textContent = goals.protein;
+  elements.proteinBar.style.width = `${Math.min((totalProtein / goals.protein) * 100, 100)}%`;
+
+  elements.dailyCarbs.textContent = Math.round(totalCarbs);
+  elements.targetCarbs.textContent = goals.carbs;
+  elements.carbsBar.style.width = `${Math.min((totalCarbs / goals.carbs) * 100, 100)}%`;
+
+  elements.dailyFats.textContent = Math.round(totalFats);
+  elements.targetFats.textContent = goals.fats;
+  elements.fatsBar.style.width = `${Math.min((totalFats / goals.fats) * 100, 100)}%`;
+
+  const profile = getProfile();
+  if (profile && profile.goal) {
+    elements.goalComparisonCard.classList.remove('hidden');
+    const delta = totalCals - goals.calories;
+    if (delta > 0) {
+      elements.calorieDelta.textContent = `+${Math.round(delta)} kcal (${Math.round((delta / goals.calories) * 100)}%)`;
+      elements.comparisonAdvice.textContent = 'Superaste tu meta. Si es un día especial, no te preocupes. Mantén el balance en los próximos días.';
+    } else if (delta < 0) {
+      elements.calorieDelta.textContent = `${Math.round(delta)} kcal (${Math.round((delta / goals.calories) * 100)}%)`;
+      elements.comparisonAdvice.textContent = 'Estás por debajo de tu meta. Considera agregar un snack o comida ligera si tienes hambre.';
+    } else {
+      elements.calorieDelta.textContent = 'En meta';
+      elements.comparisonAdvice.textContent = 'Perfecto, alcanzaste tu meta calórica del día.';
+    }
+  } else {
+    elements.goalComparisonCard.classList.add('hidden');
+  }
+
+  updateDailyMicronutrients(meals);
+  renderMealList(meals, selectedDate);
+  updateWeekStrip(selectedDate);
 }
 
-function aggregateMealComponents(meals) {
-  const micronutrients = normalizeMicronutrients({});
-  const bioactiveCounts = { antioxidants: {}, polyphenols: {}, flavonoids: {} };
-  let waterG = 0;
-  let waterPercentSum = 0;
-  let waterPercentCount = 0;
+function updateDailyMicronutrients(meals) {
+  const micronutrients = {};
+  let totalWater = 0;
+  const bioactivesCounts = { antioxidants: 0, polyphenols: 0, flavonoids: 0 };
 
   meals.forEach((meal) => {
-    const mealMicros = normalizeMicronutrients(meal.micronutrients || {});
-    MICRONUTRIENT_DEFINITIONS.forEach((definition) => {
-      micronutrients[definition.key] += Number(mealMicros[definition.key]) || 0;
+    const mealMicros = meal.micronutrients || {};
+    Object.keys(mealMicros).forEach((key) => {
+      micronutrients[key] = (micronutrients[key] || 0) + (mealMicros[key] || 0);
     });
-
-    const hydration = normalizeHydration(meal.hydration || {});
-    waterG += hydration.waterG;
-    if (hydration.waterPercent) {
-      waterPercentSum += hydration.waterPercent;
-      waterPercentCount += 1;
+    if (meal.hydration?.water_g) {
+      totalWater += meal.hydration.water_g;
     }
-
-    const bioactives = normalizeBioactives(meal.bioactives || {});
-    ['antioxidants', 'polyphenols', 'flavonoids'].forEach((key) => {
-      const level = bioactives[key] || 'sin dato';
-      bioactiveCounts[key][level] = (bioactiveCounts[key][level] || 0) + 1;
-    });
+    const bioactives = meal.bioactives || {};
+    if (bioactives.antioxidants && bioactives.antioxidants !== 'sin dato') bioactivesCounts.antioxidants++;
+    if (bioactives.polyphenols && bioactives.polyphenols !== 'sin dato') bioactivesCounts.polyphenols++;
+    if (bioactives.flavonoids && bioactives.flavonoids !== 'sin dato') bioactivesCounts.flavonoids++;
   });
 
-  return {
-    micronutrients,
-    hydration: {
-      waterG,
-      waterPercent: waterPercentCount ? Math.round(waterPercentSum / waterPercentCount) : 0,
-    },
-    bioactives: {
-      antioxidants: mostFrequentLevel(bioactiveCounts.antioxidants),
-      polyphenols: mostFrequentLevel(bioactiveCounts.polyphenols),
-      flavonoids: mostFrequentLevel(bioactiveCounts.flavonoids),
-      notes: '',
-    },
-  };
+  const highlights = MICRONUTRIENT_PRIORITY.map((key) => {
+    const def = MICRONUTRIENT_DEFINITIONS.find((d) => d.key === key);
+    if (!def) return null;
+    const aliases = def.aliases;
+    const value = aliases.reduce((acc, alias) => acc || micronutrients[alias], null);
+    return value ? { def, value } : null;
+  }).filter(Boolean);
+
+  elements.dailyMicronutrientHighlights.innerHTML = highlights
+    .slice(0, 6)
+    .map((h) => `<span class="nutrient-chip">${h.def.label}: ${Math.round(h.value)} ${h.def.unit}</span>`)
+    .join('');
+
+  let bioactivesHtml = '';
+  if (totalWater > 0) {
+    bioactivesHtml += `<div class="component-item"><span>Agua total</span><strong>${Math.round(totalWater)}g</strong></div>`;
+  }
+  if (bioactivesCounts.antioxidants > 0) {
+    bioactivesHtml += `<div class="component-item"><span>Comidas con antioxidantes</span><strong>${bioactivesCounts.antioxidants}</strong></div>`;
+  }
+  if (bioactivesCounts.polyphenols > 0) {
+    bioactivesHtml += `<div class="component-item"><span>Comidas con polifenoles</span><strong>${bioactivesCounts.polyphenols}</strong></div>`;
+  }
+  if (bioactivesCounts.flavonoids > 0) {
+    bioactivesHtml += `<div class="component-item"><span>Comidas con flavonoides</span><strong>${bioactivesCounts.flavonoids}</strong></div>`;
+  }
+  elements.dailyHydrationBioactives.innerHTML = bioactivesHtml || '<p class="microcopy">Sin datos adicionales.</p>';
 }
 
-function mostFrequentLevel(counts) {
-  return Object.entries(counts)
-    .filter(([level]) => level !== 'sin dato')
-    .sort((a, b) => b[1] - a[1])[0]?.[0] || 'sin dato';
-}
-
-function renderDailyMicronutrients(microTotals, mealCount) {
-  if (!elements.dailyMicronutrientHighlights) return;
-
-  if (!mealCount) {
-    elements.dailyMicronutrientHighlights.innerHTML = '<p class="microcopy nutrient-empty">Cuando guardes comidas, acá se sumarán los micronutrientes estimados del día.</p>';
-    elements.dailyHydrationBioactives.innerHTML = '';
-    elements.dailyMicronutrientNote.textContent = 'Los valores son orientativos y dependen de la porción, receta, cocción y alimentos exactos.';
+function renderMealList(meals, selectedDate) {
+  if (meals.length === 0) {
+    elements.mealList.innerHTML = '<p class="microcopy">No hay comidas registradas para este día.</p>';
     return;
   }
 
-  elements.dailyMicronutrientHighlights.innerHTML = buildNutrientChips(microTotals.micronutrients, 10);
-  elements.dailyHydrationBioactives.innerHTML = buildHydrationBioactives(microTotals.hydration, microTotals.bioactives);
-  elements.dailyMicronutrientNote.textContent = 'Suma diaria estimada por IA: útil como guía de variedad alimentaria, no como medición clínica.';
-}
-
-function renderWeekStrip() {
-  elements.weekStrip.innerHTML = '';
-  const selected = parseDateKey(state.selectedDate);
-  const start = new Date(selected);
-  start.setDate(selected.getDate() - 3);
-
-  for (let index = 0; index < 7; index += 1) {
-    const date = new Date(start);
-    date.setDate(start.getDate() + index);
-    const key = toDateKey(date);
-    const meals = getMealsForDate(key);
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = `day-chip${key === state.selectedDate ? ' active' : ''}`;
-    button.innerHTML = `<span>${formatWeekday(date)}</span><strong>${date.getDate()}</strong><span>${meals.length} comida${meals.length === 1 ? '' : 's'}</span>`;
-    button.addEventListener('click', () => {
-      state.selectedDate = key;
-      elements.historyDate.value = key;
-      renderDashboard();
-    });
-    elements.weekStrip.appendChild(button);
-  }
-}
-
-function renderMealList(meals) {
-  elements.mealList.innerHTML = '';
-
-  if (!meals.length) {
-    const empty = document.createElement('div');
-    empty.className = 'empty-state';
-    empty.textContent = 'No hay comidas guardadas para este día. Escanea una foto y guárdala para verla aquí.';
-    elements.mealList.appendChild(empty);
-    return;
-  }
-
-  [...meals].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).forEach((meal) => {
-    const item = document.createElement('article');
-    item.className = 'meal-item';
-
-    const thumb = meal.photoDataUrl
-      ? `<div class="meal-thumb"><img src="${escapeAttribute(meal.photoDataUrl)}" alt="Foto guardada de ${escapeHtml(meal.dishName)}" loading="lazy"></div>`
-      : '<div class="meal-thumb placeholder" aria-hidden="true">NS</div>';
-
-    item.innerHTML = `
-      ${thumb}
-      <div class="meal-meta">
-        <h4>${escapeHtml(meal.dishName)}</h4>
-        <p>${formatTime(meal.createdAt)} · ${Math.round(meal.calories)} kcal</p>
-        ${meal.review ? `<p class="meal-review">${escapeHtml(meal.review)}</p>` : ''}
-        <div class="meal-macros">
-          <span>P ${formatNumber(meal.protein)} g</span>
-          <span>C ${formatNumber(meal.carbs)} g</span>
-          <span>G ${formatNumber(meal.fats)} g</span>
+  elements.mealList.innerHTML = meals
+    .map(
+      (meal) => `
+    <div class="meal-item">
+      <div class="meal-item-header">
+        <div>
+          <strong>${escapeHtml(meal.dish_name)}</strong>
+          <small>${formatTime(meal.timestamp)}</small>
         </div>
-        ${buildMealMicronutrientSummary(meal)}
+        <span class="meal-calories">${Math.round(meal.calories)} kcal</span>
       </div>
-      ${meal.context ? `<p class="meal-context">Dato: ${escapeHtml(meal.context)}</p>` : ''}
-      <button class="delete-meal-button" type="button" aria-label="Eliminar ${escapeHtml(meal.dishName)}">×</button>
-    `;
-
-    item.querySelector('.delete-meal-button').addEventListener('click', () => deleteMeal(meal.id));
-    elements.mealList.appendChild(item);
-  });
-}
-
-function buildMealMicronutrientSummary(meal) {
-  const chips = getDisplayNutrients(normalizeMicronutrients(meal.micronutrients || {}), 4);
-  const hydration = normalizeHydration(meal.hydration || {});
-  const waterChip = hydration.waterG ? `<span>Agua ${formatNumber(hydration.waterG)} g</span>` : '';
-
-  if (!chips.length && !waterChip) return '';
-
-  return `
-    <div class="meal-micros">
-      ${chips.map(({ definition, value }) => `<span>${escapeHtml(definition.label)} ${formatMicroValue(value, definition.unit)}</span>`).join('')}
-      ${waterChip}
+      <div class="meal-item-macros">
+        <span>P: ${Math.round(meal.protein_g)}g</span>
+        <span>C: ${Math.round(meal.carbs_g)}g</span>
+        <span>G: ${Math.round(meal.fat_g)}g</span>
+      </div>
+      <button class="ghost-button danger small" onclick="deleteMeal('${selectedDate}', ${meal.id})">Eliminar</button>
     </div>
-  `;
+  `
+    )
+    .join('');
 }
 
-function deleteMeal(mealId) {
-  const meals = getMealsForDate(state.selectedDate);
-  const nextMeals = meals.filter((meal) => meal.id !== mealId);
-  saveMealsForDate(state.selectedDate, nextMeals);
-  renderDashboard();
-  showToast('Comida eliminada.');
+function deleteMeal(dateKey, mealId) {
+  let meals = JSON.parse(localStorage.getItem(`meals_${dateKey}`) || '[]');
+  meals = meals.filter((m) => m.id !== mealId);
+  localStorage.setItem(`meals_${dateKey}`, JSON.stringify(meals));
+  updateDashboard();
 }
 
-function setupSettings() {
-  elements.apiKeyInput.value = getApiKey();
+function clearDay() {
+  if (!confirm('¿Estás seguro de que querés borrar todas las comidas de este día?')) return;
+  const dateKey = elements.historyDate?.value || toDateKey(new Date());
+  localStorage.removeItem(`meals_${dateKey}`);
+  updateDashboard();
+  showToast('Día borrado.');
+}
 
-  elements.apiForm.addEventListener('submit', (event) => {
-    event.preventDefault();
-    const key = elements.apiKeyInput.value.trim();
+function getMealsForDate(dateKey) {
+  return JSON.parse(localStorage.getItem(`meals_${dateKey}`) || '[]');
+}
 
-    if (!key) {
-      showToast('Pega una API Key antes de guardar.');
-      return;
-    }
+function updateWeekStrip(selectedDate) {
+  const today = new Date(selectedDate);
+  let html = '';
 
-    localStorage.setItem(STORAGE.apiKey, key);
-    elements.apiFormStatus.textContent = 'API Key guardada localmente en este navegador.';
-    refreshApiState();
-    showToast('API Key guardada.');
-  });
+  for (let i = 6; i >= 0; i--) {
+    const date = new Date(today);
+    date.setDate(today.getDate() - i);
+    const dateKey = toDateKey(date);
+    const meals = getMealsForDate(dateKey);
+    const totalCals = meals.reduce((sum, m) => sum + (m.calories || 0), 0);
+    const goals = getGoals();
+    const percent = Math.round((totalCals / goals.calories) * 100);
 
-  elements.toggleApiVisibility.addEventListener('click', () => {
-    const isPassword = elements.apiKeyInput.type === 'password';
-    elements.apiKeyInput.type = isPassword ? 'text' : 'password';
-    elements.toggleApiVisibility.textContent = isPassword ? 'Ocultar' : 'Ver';
-  });
+    const dayName = date.toLocaleDateString('es-ES', { weekday: 'short' }).substring(0, 1);
+    const isToday = dateKey === toDateKey(new Date());
+    const isSelected = dateKey === selectedDate;
 
-  elements.deleteApiKeyButton.addEventListener('click', () => {
-    localStorage.removeItem(STORAGE.apiKey);
-    elements.apiKeyInput.value = '';
-    elements.apiFormStatus.textContent = 'API Key eliminada de este navegador.';
-    refreshApiState();
-    showToast('API Key eliminada.');
-  });
-
-  // Assistant Gemini API Key Management
-  if (elements.assistantKeyInput) {
-    elements.assistantKeyInput.value = getAssistantApiKey();
-    if (elements.saveAssistantKeyButton) {
-      elements.saveAssistantKeyButton.onclick = (e) => {
-        if (e) { e.preventDefault(); e.stopPropagation(); }
-        const key = elements.assistantKeyInput.value.trim();
-        if (!key) {
-          showToast('Pega una API Key de Google antes de guardar.');
-          return false;
-        }
-        try {
-          localStorage.setItem(STORAGE.assistantApiKey, key);
-          elements.assistantKeyFormStatus.textContent = 'API Key del Asistente guardada localmente.';
-          refreshAssistantState();
-          showToast('API Key del Asistente guardada ✅');
-        } catch (err) {
-          console.error('Error saving to localStorage:', err);
-          showToast('Error al guardar.');
-        }
-        return false;
-      };
-    }
-    elements.toggleAssistantVisibility.addEventListener('click', () => {
-      const isPassword = elements.assistantKeyInput.type === 'password';
-      elements.assistantKeyInput.type = isPassword ? 'text' : 'password';
-      elements.toggleAssistantVisibility.textContent = isPassword ? 'Ocultar' : 'Ver';
-    });
-    elements.deleteAssistantKeyButton.addEventListener('click', () => {
-      localStorage.removeItem(STORAGE.assistantApiKey);
-      elements.assistantKeyInput.value = '';
-      elements.assistantKeyFormStatus.textContent = 'API Key del Asistente eliminada.';
-      refreshAssistantState();
-      showToast('API Key del Asistente eliminada.');
-    });
+    html += `
+      <button class="week-day ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}" onclick="elements.historyDate.value='${dateKey}'; updateDashboard();" title="${dateKey}">
+        <span class="day-name">${dayName}</span>
+        <span class="day-percent">${percent}%</span>
+      </button>
+    `;
   }
 
-  if (elements.profileForm) {
-    elements.profileForm.addEventListener('submit', (event) => {
-      event.preventDefault();
-      const profile = readProfileForm();
-      const validation = validateProfile(profile);
-      if (validation) {
-        showToast(validation);
-        return;
-      }
+  elements.weekStrip.innerHTML = html;
+}
 
-      const goals = calculateNutritionGoals(profile);
-      localStorage.setItem(STORAGE.profile, JSON.stringify({ ...profile, updatedAt: new Date().toISOString() }));
-      localStorage.setItem(STORAGE.goals, JSON.stringify(goals));
-      elements.profileFormStatus.textContent = 'Perfil guardado y objetivos diarios actualizados.';
-      loadGoalsIntoForm();
-      renderProfileSummary();
-      renderDashboard();
-      showToast('Perfil nutricional actualizado.');
-    });
+function saveProfile(e) {
+  e.preventDefault();
+  const profile = {
+    age: parseInt(elements.profileAge.value) || 25,
+    sex: elements.profileSex.value || 'male',
+    height: parseInt(elements.profileHeight.value) || 170,
+    weight: parseFloat(elements.profileWeight.value) || 70,
+    activity: parseFloat(elements.profileActivity.value) || 1.55,
+    goal: elements.profileGoal.value || 'maintain',
+  };
+
+  localStorage.setItem(STORAGE.profile, JSON.stringify(profile));
+  calculateGoals(profile);
+  elements.profileFormStatus.textContent = 'Perfil guardado y metas calculadas.';
+  updateDashboard();
+}
+
+function calculateGoals(profile) {
+  const { age, sex, height, weight, activity, goal } = profile;
+
+  let bmr;
+  if (sex === 'male') {
+    bmr = 88.362 + 13.397 * weight + 4.799 * height - 5.677 * age;
+  } else if (sex === 'female') {
+    bmr = 447.593 + 9.247 * weight + 3.098 * height - 4.33 * age;
+  } else {
+    bmr = (88.362 + 13.397 * weight + 4.799 * height - 5.677 * age + 447.593 + 9.247 * weight + 3.098 * height - 4.33 * age) / 2;
   }
 
-  elements.goalsForm.addEventListener('submit', (event) => {
-    event.preventDefault();
-    const goals = {
-      calories: Math.max(1, Number(elements.goalCalories.value) || DEFAULT_GOALS.calories),
-      protein: Math.max(1, Number(elements.goalProtein.value) || DEFAULT_GOALS.protein),
-      carbs: Math.max(1, Number(elements.goalCarbs.value) || DEFAULT_GOALS.carbs),
-      fats: Math.max(1, Number(elements.goalFats.value) || DEFAULT_GOALS.fats),
-    };
-    localStorage.setItem(STORAGE.goals, JSON.stringify(goals));
-    renderProfileSummary();
-    elements.goalsFormStatus.textContent = 'Objetivos guardados localmente.';
-    renderDashboard();
-    showToast('Objetivos diarios actualizados.');
-  });
+  const tdee = Math.round(bmr * activity);
+
+  let calories;
+  switch (goal) {
+    case 'lose_fat':
+      calories = Math.round(tdee * 0.85);
+      break;
+    case 'recompose':
+      calories = Math.round(tdee * 0.9);
+      break;
+    case 'maintain':
+      calories = tdee;
+      break;
+    case 'gain_muscle':
+      calories = Math.round(tdee * 1.1);
+      break;
+    case 'gain_weight':
+      calories = Math.round(tdee * 1.2);
+      break;
+    default:
+      calories = tdee;
+  }
+
+  const proteinPerKg = goal === 'gain_muscle' ? 2.2 : goal === 'lose_fat' ? 2.0 : 1.6;
+  const protein = Math.round(weight * proteinPerKg);
+  const fatPercent = 0.3;
+  const fats = Math.round((calories * fatPercent) / 9);
+  const carbs = Math.round((calories - protein * 4 - fats * 9) / 4);
+
+  const goals = { calories, protein, carbs, fats };
+  localStorage.setItem(STORAGE.goals, JSON.stringify(goals));
+
+  elements.profileCalories.textContent = calories;
+  elements.profileProtein.textContent = protein;
+  elements.profileCarbs.textContent = carbs;
+  elements.profileFats.textContent = fats;
+  elements.profileCalorieRing.style.setProperty('--progress', '270deg');
 }
 
-
-function readProfileForm() {
-  return {
-    age: Number(elements.profileAge?.value) || 0,
-    sex: elements.profileSex?.value || 'other',
-    height: Number(elements.profileHeight?.value) || 0,
-    weight: Number(elements.profileWeight?.value) || 0,
-    activity: Number(elements.profileActivity?.value) || 1.2,
-    goal: elements.profileGoal?.value || 'maintain',
-  };
-}
-
-function validateProfile(profile) {
-  if (profile.age < 12 || profile.age > 100) return 'Revisa la edad: debe estar entre 12 y 100 años.';
-  if (profile.height < 120 || profile.height > 230) return 'Revisa la altura: debe estar entre 120 y 230 cm.';
-  if (profile.weight < 35 || profile.weight > 250) return 'Revisa el peso: debe estar entre 35 y 250 kg.';
-  return '';
-}
-
-function calculateNutritionGoals(profile) {
-  const sexOffset = profile.sex === 'male' ? 5 : profile.sex === 'female' ? -161 : -78;
-  const bmr = (10 * profile.weight) + (6.25 * profile.height) - (5 * profile.age) + sexOffset;
-  const maintenance = bmr * profile.activity;
-  const goalConfig = getGoalConfig(profile.goal);
-  const calories = Math.max(1200, Math.round(maintenance * goalConfig.calorieFactor));
-  const protein = Math.round(profile.weight * goalConfig.proteinPerKg);
-  const fats = Math.round(Math.max(profile.weight * 0.7, (calories * 0.22) / 9));
-  const carbs = Math.round(Math.max(40, (calories - (protein * 4) - (fats * 9)) / 4));
-
-  return {
-    calories,
-    protein,
-    carbs,
-    fats,
-    bmr: Math.round(bmr),
-    maintenance: Math.round(maintenance),
-    goalLabel: goalConfig.label,
-    source: 'profile',
-  };
-}
-
-function getGoalConfig(goal) {
-  const configs = {
-    lose_fat: { label: 'bajar peso / perder grasa', calorieFactor: 0.85, proteinPerKg: 2.0, advice: 'Déficit moderado, buena proteína y constancia. Priorizá comidas saciantes, verduras y entrenamiento de fuerza si podés.' },
-    recompose: { label: 'perder grasa y mantener músculo', calorieFactor: 0.92, proteinPerKg: 2.1, advice: 'Déficit suave con proteína alta: ideal para mejorar composición corporal sin bajar demasiado el rendimiento.' },
-    maintain: { label: 'mantener peso y mejorar hábitos', calorieFactor: 1.0, proteinPerKg: 1.7, advice: 'Objetivo equilibrado: buscá regularidad, fibra, proteína suficiente y calidad de alimentos.' },
-    gain_muscle: { label: 'ganar músculo con mínimo exceso', calorieFactor: 1.08, proteinPerKg: 2.0, advice: 'Superávit leve: acompañalo con entrenamiento progresivo y controlá que el aumento de peso sea gradual.' },
-    gain_weight: { label: 'subir peso', calorieFactor: 1.15, proteinPerKg: 1.8, advice: 'Superávit más claro: sumá comidas densas en energía sin descuidar proteína, micronutrientes y digestión.' },
-  };
-  return configs[goal] || configs.maintain;
+function loadProfile() {
+  const profile = getProfile();
+  if (profile) {
+    elements.profileAge.value = profile.age;
+    elements.profileSex.value = profile.sex;
+    elements.profileHeight.value = profile.height;
+    elements.profileWeight.value = profile.weight;
+    elements.profileActivity.value = profile.activity;
+    elements.profileGoal.value = profile.goal;
+    calculateGoals(profile);
+  }
 }
 
 function getProfile() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE.profile) || 'null');
-  } catch {
-    return null;
-  }
+  return JSON.parse(localStorage.getItem(STORAGE.profile) || 'null');
 }
 
-function loadProfileIntoForm() {
-  const profile = getProfile();
-  if (!profile || !elements.profileForm) return;
-  elements.profileAge.value = profile.age || '';
-  elements.profileSex.value = profile.sex || 'other';
-  elements.profileHeight.value = profile.height || '';
-  elements.profileWeight.value = profile.weight || '';
-  elements.profileActivity.value = String(profile.activity || 1.2);
-  elements.profileGoal.value = profile.goal || 'maintain';
+function saveGoals(e) {
+  e.preventDefault();
+  const goals = {
+    calories: parseInt(elements.goalCalories.value) || DEFAULT_GOALS.calories,
+    protein: parseInt(elements.goalProtein.value) || DEFAULT_GOALS.protein,
+    carbs: parseInt(elements.goalCarbs.value) || DEFAULT_GOALS.carbs,
+    fats: parseInt(elements.goalFats.value) || DEFAULT_GOALS.fats,
+  };
+
+  localStorage.setItem(STORAGE.goals, JSON.stringify(goals));
+  elements.goalsFormStatus.textContent = 'Objetivos manuales guardados.';
+  updateDashboard();
 }
 
-function renderProfileSummary() {
-  if (!elements.profileCalories) return;
-  const profile = getProfile();
-  const goals = getGoals();
-  const goalConfig = profile ? getGoalConfig(profile.goal) : null;
-
-  elements.profileCalories.textContent = String(Math.round(goals.calories));
-  elements.profileProtein.textContent = `${formatNumber(goals.protein)} g`;
-  elements.profileCarbs.textContent = `${formatNumber(goals.carbs)} g`;
-  elements.profileFats.textContent = `${formatNumber(goals.fats)} g`;
-
-  if (!profile) {
-    elements.profileSummaryText.textContent = 'Completá edad, altura, peso, actividad y objetivo para obtener una guía personalizada.';
-    elements.profileAdvice.textContent = 'Mientras no cargues tu perfil, se usan metas generales por defecto. Podés editarlas manualmente en Ajustes.';
-    return;
-  }
-
-  elements.profileSummaryText.textContent = `Para ${goalConfig.label}, tu referencia es ${Math.round(goals.calories)} kcal diarias. Mantenimiento estimado: ${goals.maintenance || '—'} kcal.`;
-  elements.profileAdvice.textContent = goalConfig.advice;
-}
-
-function formatCalorieDelta(diff) {
-  if (Math.abs(diff) <= 40) return 'Estás prácticamente en tu meta calórica.';
-  return diff > 0 ? `Te faltan aprox. ${diff} kcal.` : `Te pasaste aprox. ${Math.abs(diff)} kcal.`;
-}
-
-function buildComparisonAdvice(totals, goals) {
-  const remainingProtein = Math.round(goals.protein - totals.protein);
-  const remainingCalories = Math.round(goals.calories - totals.calories);
-  const calorieText = remainingCalories >= 0
-    ? `quedan unas ${remainingCalories} kcal para el día`
-    : `superaste la meta por unas ${Math.abs(remainingCalories)} kcal`;
-  const proteinText = remainingProtein > 8
-    ? `Conviene priorizar proteína en la próxima comida: faltan unos ${remainingProtein} g.`
-    : remainingProtein < -8
-      ? 'La proteína ya está cubierta; equilibrá con verduras, fibra y saciedad.'
-      : 'La proteína está cerca de la meta.';
-  return `Según tu objetivo, ${calorieText}. ${proteinText}`;
-}
-
-function refreshApiState() {
-  const ready = hasApiKey();
-  elements.apiStatus.textContent = ready ? 'API lista' : 'Sin API';
-  elements.apiStatus.classList.toggle('ready', ready);
-  elements.apiLock.classList.toggle('hidden', ready);
-  elements.analyzeButton.disabled = !ready || !state.compressedImage;
-}
-
-function loadGoalsIntoForm() {
+function loadGoals() {
   const goals = getGoals();
   elements.goalCalories.value = goals.calories;
   elements.goalProtein.value = goals.protein;
@@ -1113,222 +911,142 @@ function loadGoalsIntoForm() {
   elements.goalFats.value = goals.fats;
 }
 
-function getApiKey() {
-  return localStorage.getItem(STORAGE.apiKey) || '';
-}
-
-function hasApiKey() {
-  return Boolean(getApiKey());
-}
-
 function getGoals() {
-  try {
-    return { ...DEFAULT_GOALS, ...JSON.parse(localStorage.getItem(STORAGE.goals) || '{}') };
-  } catch {
-    return { ...DEFAULT_GOALS };
+  return JSON.parse(localStorage.getItem(STORAGE.goals) || JSON.stringify(DEFAULT_GOALS));
+}
+
+function toggleApiKeyVisibility() {
+  const isPassword = elements.apiKeyInput.type === 'password';
+  elements.apiKeyInput.type = isPassword ? 'text' : 'password';
+  elements.toggleApiVisibility.textContent = isPassword ? 'Ocultar' : 'Ver';
+}
+
+function toggleAssistantKeyVisibility() {
+  const isPassword = elements.assistantKeyInput.type === 'password';
+  elements.assistantKeyInput.type = isPassword ? 'text' : 'password';
+  elements.toggleAssistantVisibility.textContent = isPassword ? 'Ocultar' : 'Ver';
+}
+
+function deleteApiKey() {
+  if (!confirm('¿Estás seguro de que querés eliminar tu API Key?')) return;
+  localStorage.removeItem(STORAGE.apiKey);
+  elements.apiKeyInput.value = '';
+  elements.apiFormStatus.textContent = 'API Key eliminada.';
+  refreshApiStatus();
+}
+
+function deleteAssistantKey() {
+  if (!confirm('¿Estás seguro de que querés eliminar tu API Key del Asistente?')) return;
+  localStorage.removeItem(STORAGE.assistantApiKey);
+  elements.assistantKeyInput.value = '';
+  elements.assistantKeyFormStatus.textContent = 'API Key del Asistente eliminada.';
+  refreshAssistantState();
+}
+
+function refreshApiStatus() {
+  const hasKey = Boolean(localStorage.getItem(STORAGE.apiKey));
+  elements.apiStatus.textContent = hasKey ? 'API configurada' : 'Sin API';
+  elements.apiStatus.classList.toggle('ready', hasKey);
+  elements.apiLock.classList.toggle('hidden', hasKey);
+}
+
+function showToast(message) {
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.classList.remove('hidden');
+  setTimeout(() => {
+    toast.classList.add('hidden');
+  }, 3000);
+}
+
+function handleInstallPrompt() {
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    state.installPrompt = e;
+    elements.installButton?.classList.remove('hidden');
+  });
+
+  elements.installButton?.addEventListener('click', async () => {
+    if (!state.installPrompt) return;
+    state.installPrompt.prompt();
+    const { outcome } = await state.installPrompt.userChoice;
+    if (outcome === 'accepted') {
+      state.installPrompt = null;
+      elements.installButton?.classList.add('hidden');
+    }
+  });
+}
+
+function syncWithLocalStorage() {
+  const apiKey = localStorage.getItem(STORAGE.apiKey);
+  if (apiKey) {
+    elements.apiKeyInput.value = apiKey;
   }
-}
-
-function dayStorageKey(dateKey) {
-  return `nutriscan_day_${dateKey}`;
-}
-
-function getMealsForDate(dateKey) {
-  try {
-    const value = localStorage.getItem(dayStorageKey(dateKey));
-    const parsed = JSON.parse(value || '[]');
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
+  const assistantKey = localStorage.getItem(STORAGE.assistantApiKey);
+  if (assistantKey) {
+    elements.assistantKeyInput.value = assistantKey;
   }
+  refreshApiStatus();
 }
 
-function saveMealsForDate(dateKey, meals) {
-  if (!meals.length) {
-    localStorage.removeItem(dayStorageKey(dateKey));
+document.getElementById('apiKeyForm')?.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const apiKey = elements.apiKeyInput.value.trim();
+  if (!apiKey) {
+    showToast('Pega una API Key válida.');
+    return;
+  }
+  localStorage.setItem(STORAGE.apiKey, apiKey);
+  elements.apiFormStatus.textContent = 'API Key guardada.';
+  refreshApiStatus();
+  availableGeminiModelsCache = null;
+});
+
+document.getElementById('assistantKeyForm')?.addEventListener('click', (e) => {
+  if (e.target.id === 'saveAssistantKeyButton') {
+    const assistantKey = elements.assistantKeyInput.value.trim();
+    if (!assistantKey) {
+      showToast('Pega una API Key válida.');
+      return;
+    }
+    localStorage.setItem(STORAGE.assistantApiKey, assistantKey);
+    elements.assistantKeyFormStatus.textContent = 'API Key del Asistente guardada.';
+    refreshAssistantState();
+    availableGeminiModelsCache = null;
+  }
+});
+
+async function sendChatMessage() {
+  const message = elements.chatInput.value.trim();
+  if (!message) return;
+
+  const assistantKey = getAssistantApiKey();
+  if (!assistantKey) {
+    showToast('Configura tu API Key del Asistente en Ajustes primero.');
+    activateTab('settings');
     return;
   }
 
+  addChatMessage(message, 'user');
+  elements.chatInput.value = '';
+
+  const loadingMsg = document.createElement('div');
+  loadingMsg.className = 'chat-loading';
+  loadingMsg.textContent = 'Asistente está pensando';
+  elements.chatHistory.appendChild(loadingMsg);
+  elements.chatHistory.scrollTop = elements.chatHistory.scrollHeight;
+
   try {
-    localStorage.setItem(dayStorageKey(dateKey), JSON.stringify(meals));
+    const response = await callGeminiAssistant(assistantKey, message);
+    loadingMsg.remove();
+    addChatMessage(response, 'assistant');
+    saveChatMessage({ role: 'user', content: message });
+    saveChatMessage({ role: 'assistant', content: response });
   } catch (error) {
+    loadingMsg.remove();
     console.error(error);
-    showToast('No se pudo guardar: el almacenamiento local está lleno. Borra días antiguos o usa fotos más pequeñas.');
+    addChatMessage(`Error: ${error.message || 'No se pudo procesar tu pregunta.'}`, 'error');
   }
-}
-
-function toDateKey(date) {
-  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-  return local.toISOString().slice(0, 10);
-}
-
-function parseDateKey(dateKey) {
-  const [year, month, day] = dateKey.split('-').map(Number);
-  return new Date(year, month - 1, day);
-}
-
-function formatDateLong(dateKey) {
-  return new Intl.DateTimeFormat('es', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  }).format(parseDateKey(dateKey));
-}
-
-function formatWeekday(date) {
-  return new Intl.DateTimeFormat('es', { weekday: 'short' }).format(date).replace('.', '');
-}
-
-function formatTime(value) {
-  return new Intl.DateTimeFormat('es', { hour: '2-digit', minute: '2-digit' }).format(new Date(value));
-}
-
-function formatNumber(value) {
-  const number = Number(value) || 0;
-  return Number.isInteger(number) ? String(number) : number.toFixed(1);
-}
-
-function toPercent(value, goal) {
-  return Math.min(100, Math.round(((Number(value) || 0) / Math.max(1, Number(goal) || 1)) * 100));
-}
-
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
-}
-
-function escapeAttribute(value) {
-  return escapeHtml(value).replaceAll('`', '&#096;');
-}
-
-function setBusy(isBusy, label = '') {
-  elements.analyzeButton.disabled = isBusy || !hasApiKey() || !state.compressedImage;
-  elements.buttonLoader.classList.toggle('hidden', !isBusy);
-  const text = elements.analyzeButton.querySelector('span:first-child');
-  text.textContent = isBusy ? label : 'Analizar con IA';
-}
-
-let toastTimer;
-function showToast(message) {
-  window.clearTimeout(toastTimer);
-  elements.toast.textContent = message;
-  elements.toast.classList.remove('hidden');
-  toastTimer = window.setTimeout(() => elements.toast.classList.add('hidden'), 4200);
-}
-
-function setupInstallPrompt() {
-  window.addEventListener('beforeinstallprompt', (event) => {
-    event.preventDefault();
-    state.installPrompt = event;
-    elements.installButton.classList.remove('hidden');
-  });
-
-  elements.installButton.addEventListener('click', async () => {
-    if (!state.installPrompt) return;
-    state.installPrompt.prompt();
-    await state.installPrompt.userChoice;
-    state.installPrompt = null;
-    elements.installButton.classList.add('hidden');
-  });
-}
-
-async function registerServiceWorker() {
-  if (!('serviceWorker' in navigator)) return;
-
-  const reloadOnceForUpdate = () => {
-    const flag = 'nutriscan_sw_reloaded_20260609_micros';
-    if (sessionStorage.getItem(flag)) return;
-    sessionStorage.setItem(flag, '1');
-    window.location.replace('./index.html?v=20260614-fix-chat');
-  };
-
-  try {
-    const registration = await navigator.serviceWorker.register('./sw.js?v=20260614-fix-chat', {
-      updateViaCache: 'none',
-    });
-
-    navigator.serviceWorker.addEventListener('message', (event) => {
-      if (event.data?.type === 'NUTRISCAN_UPDATED') {
-        reloadOnceForUpdate();
-      }
-    });
-
-    registration.addEventListener('updatefound', () => {
-      const newWorker = registration.installing;
-      if (!newWorker) return;
-
-      newWorker.addEventListener('statechange', () => {
-        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-          newWorker.postMessage({ type: 'SKIP_WAITING' });
-        }
-      });
-    });
-
-    navigator.serviceWorker.addEventListener('controllerchange', reloadOnceForUpdate);
-    await registration.update();
-  } catch (error) {
-    console.warn('No se pudo registrar el service worker.', error);
-  }
-}
-
-
-// ============ ASSISTANT NVIDIA NIM ============
-
-const ASSISTANT_CONFIG = {
-  rateLimitMs: 1000,
-  cacheExpiryMs: 3600000,
-  maxRequestsPerHour: 20,
-};
-
-let assistantState = {
-  lastRequestTime: 0,
-  requestsThisHour: 0,
-  hourStartTime: Date.now(),
-  responseCache: {},
-};
-
-function setupAssistant() {
-  if (!elements.chatForm) return;
-
-  elements.chatForm.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const message = elements.chatInput.value.trim();
-    if (!message) return;
-
-    const assistantKey = getAssistantApiKey();
-    if (!assistantKey) {
-      showToast('Configura tu API Key del Asistente en Ajustes primero.');
-      activateTab('settings');
-      return;
-    }
-
-    // Add user message to chat
-    addChatMessage(message, 'user');
-    elements.chatInput.value = '';
-
-    // Show loading indicator
-    const loadingMsg = document.createElement('div');
-    loadingMsg.className = 'chat-loading';
-    loadingMsg.textContent = 'Asistente está pensando';
-    elements.chatHistory.appendChild(loadingMsg);
-    elements.chatHistory.scrollTop = elements.chatHistory.scrollHeight;
-
-    try {
-      const response = await callGeminiAssistant(assistantKey, message);
-      loadingMsg.remove();
-      addChatMessage(response, 'assistant');
-      saveChatMessage({ role: 'user', content: message });
-      saveChatMessage({ role: 'assistant', content: response });
-    } catch (error) {
-      loadingMsg.remove();
-      console.error(error);
-      addChatMessage(`Error: ${error.message || 'No se pudo procesar tu pregunta.'}`, 'error');
-    }
-  });
 }
 
 function addChatMessage(content, role = 'assistant') {
@@ -1358,7 +1076,6 @@ async function callGeminiAssistant(apiKey, userMessage) {
   const meals = getMealsForDate(toDateKey(new Date()));
   const goals = getGoals();
 
-  // Check for special commands
   const lowerMsg = userMessage.toLowerCase();
   if (lowerMsg.includes('receta') || lowerMsg.includes('qué cocinar')) {
     return generateRecipeFromMeals(apiKey, meals, profile, goals);
@@ -1367,7 +1084,6 @@ async function callGeminiAssistant(apiKey, userMessage) {
     return generateWeeklySummary(apiKey, profile, goals);
   }
 
-  // Build context
   let context = 'Eres un asistente nutricional experto, amable y motivador. ';
   if (profile) {
     context += `El usuario es ${profile.age} años, ${profile.sex}, ${profile.height}cm, ${profile.weight}kg, con objetivo de ${profile.goal}. `;
@@ -1375,7 +1091,7 @@ async function callGeminiAssistant(apiKey, userMessage) {
   context += `Sus metas diarias son: ${goals.calories} kcal, ${goals.protein}g proteína, ${goals.carbs}g carbos, ${goals.fats}g grasas. `;
   if (meals.length > 0) {
     const totalCals = meals.reduce((sum, m) => sum + (m.calories || 0), 0);
-    const totalProtein = meals.reduce((sum, m) => sum + (m.protein || 0), 0);
+    const totalProtein = meals.reduce((sum, m) => sum + (m.protein_g || 0), 0);
     context += `Hoy ha consumido aproximadamente ${Math.round(totalCals)} kcal (${Math.round(totalProtein)}g proteína) en ${meals.length} comidas. `;
   }
   context += 'Responde en español, de forma concisa y práctica. Si pide recetas, sé específico. Si pide consejo, sé motivador pero realista.';
@@ -1392,54 +1108,68 @@ async function callGeminiChat(apiKey, systemPrompt, userMessage) {
 
   const fullPrompt = `${systemPrompt}\n\nUsuario: ${userMessage}`;
   
-  // Use the exact same structure as callGemini which we know works
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
-  
-  try {
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: fullPrompt }],
+  let lastError = null;
+  const modelsToTry = await getAvailableGeminiModels(apiKey);
+
+  for (const model of modelsToTry) {
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+    
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: 'user',
+              parts: [{ text: fullPrompt }],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.7,
+            topP: 0.95,
+            topK: 64,
+            maxOutputTokens: 1024,
           },
-        ],
-        generationConfig: {
-          temperature: 0.7,
-          topP: 0.95,
-          topK: 64,
-          maxOutputTokens: 1024,
-        },
-      }),
-    });
+        }),
+      });
 
-    const payload = await response.json().catch(() => ({}));
+      const payload = await response.json().catch(() => ({}));
 
-    if (!response.ok) {
-      const message = payload?.error?.message || `Error ${response.status} al llamar a Gemini.`;
-      throw new Error(message);
+      if (!response.ok) {
+        const message = payload?.error?.message || `Error ${response.status} al llamar a Gemini.`;
+        lastError = new Error(`${model}: ${message}`);
+
+        if (shouldTryNextModel(response.status, message)) {
+          console.warn(`Modelo no disponible, probando fallback: ${model}`, message);
+          continue;
+        }
+
+        throw lastError;
+      }
+
+      const result = payload.candidates?.[0]?.content?.parts?.[0]?.text || 'No se pudo generar una respuesta.';
+      
+      assistantState.responseCache[cacheKey] = {
+        response: result,
+        timestamp: Date.now(),
+      };
+      
+      return result;
+    } catch (error) {
+      console.error(`Error with model ${model}:`, error);
+      lastError = error;
+      continue;
     }
-
-    const result = payload.candidates?.[0]?.content?.parts?.[0]?.text || 'No se pudo generar una respuesta.';
-    
-    assistantState.responseCache[cacheKey] = {
-      response: result,
-      timestamp: Date.now(),
-    };
-    
-    return result;
-  } catch (error) {
-    console.error('Gemini Chat Error:', error);
-    // FALLBACK: If the second key fails, try with the main key
-    const mainKey = localStorage.getItem(STORAGE.apiKey);
-    if (mainKey && apiKey !== mainKey) {
-      console.log('Trying fallback with main API Key...');
-      return callGeminiChat(mainKey, systemPrompt, userMessage);
-    }
-    throw new Error(error.message === 'Failed to fetch' ? 'Error de conexión o API Key inválida.' : error.message);
   }
+
+  const mainKey = localStorage.getItem(STORAGE.apiKey);
+  if (mainKey && apiKey !== mainKey) {
+    console.log('Trying fallback with main API Key...');
+    return callGeminiChat(mainKey, systemPrompt, userMessage);
+  }
+
+  throw lastError || new Error('No se encontró un modelo Gemini compatible para esta API Key.');
 }
 
 function getAssistantApiKey() {
@@ -1483,7 +1213,6 @@ function saveChatMessage(message) {
   try {
     const history = JSON.parse(localStorage.getItem(STORAGE.chatHistory) || '[]');
     history.push({ ...message, timestamp: new Date().toISOString() });
-    // Keep only last 100 messages to avoid storage limits
     if (history.length > 100) {
       history.shift();
     }
@@ -1518,7 +1247,7 @@ async function generateWeeklySummary(apiKey, profile, goals) {
     const meals = getMealsForDate(dateKey);
     if (meals.length > 0) {
       weekData.totalCals += meals.reduce((sum, m) => sum + (m.calories || 0), 0);
-      weekData.totalProtein += meals.reduce((sum, m) => sum + (m.protein || 0), 0);
+      weekData.totalProtein += meals.reduce((sum, m) => sum + (m.protein_g || 0), 0);
       weekData.daysWithData += 1;
     }
   }
@@ -1538,8 +1267,6 @@ Da un resumen motivador de 2-3 frases sobre su progreso, identifica fortalezas y
   return callGeminiChat(apiKey, systemPrompt, prompt);
 }
 
-
-
 function hashString(str) {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -1549,3 +1276,5 @@ function hashString(str) {
   }
   return hash.toString(36);
 }
+
+document.addEventListener('DOMContentLoaded', initializeApp);
