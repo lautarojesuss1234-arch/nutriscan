@@ -1243,11 +1243,11 @@ async function registerServiceWorker() {
     const flag = 'nutriscan_sw_reloaded_20260609_micros';
     if (sessionStorage.getItem(flag)) return;
     sessionStorage.setItem(flag, '1');
-    window.location.replace('./index.html?v=20260614-gemini-final');
+    window.location.replace('./index.html?v=20260614-gemini-clon');
   };
 
   try {
-    const registration = await navigator.serviceWorker.register('./sw.js?v=20260614-gemini-final', {
+    const registration = await navigator.serviceWorker.register('./sw.js?v=20260614-gemini-clon', {
       updateViaCache: 'none',
     });
 
@@ -1384,52 +1384,45 @@ async function callGeminiAssistant(apiKey, userMessage) {
 }
 
 async function callGeminiChat(apiKey, systemPrompt, userMessage) {
-  const cacheKey = 'gemini_chat_v2_' + hashString(systemPrompt + userMessage);
+  const cacheKey = 'gemini_chat_v3_' + hashString(systemPrompt + userMessage);
   const cached = assistantState.responseCache[cacheKey];
   if (cached && Date.now() - cached.timestamp < ASSISTANT_CONFIG.cacheExpiryMs) {
     return cached.response;
   }
 
-  // Google Gemini API expects a specific structure for the prompt
-  const fullPrompt = `${systemPrompt}\n\nPregunta del usuario: ${userMessage}`;
+  const fullPrompt = `${systemPrompt}\n\nUsuario: ${userMessage}`;
   
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-  const payload = {
-    contents: [{
-      parts: [{ text: fullPrompt }]
-    }],
-    generationConfig: {
-      temperature: 0.7,
-      maxOutputTokens: 800,
-    }
-  };
-
+  // Use the exact same structure as callGemini which we know works
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
+  
   try {
     const response = await fetch(endpoint, {
       method: 'POST',
-      mode: 'cors', // Explicitly set CORS
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: fullPrompt }],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.7,
+          topP: 0.95,
+          topK: 64,
+          maxOutputTokens: 1024,
+        },
+      }),
     });
 
+    const payload = await response.json().catch(() => ({}));
+
     if (!response.ok) {
-      const errorText = await response.text();
-      let errorMessage = `Error ${response.status}`;
-      try {
-        const errorJson = JSON.parse(errorText);
-        errorMessage = errorJson.error?.message || errorMessage;
-      } catch (e) {}
-      throw new Error(errorMessage);
+      const message = payload?.error?.message || `Error ${response.status} al llamar a Gemini.`;
+      throw new Error(message);
     }
 
-    const data = await response.json();
-    if (!data.candidates || data.candidates.length === 0) {
-      throw new Error('La IA no generó ninguna respuesta. Intenta con otra pregunta.');
-    }
-
-    const result = data.candidates[0].content.parts[0].text;
+    const result = payload.candidates?.[0]?.content?.parts?.[0]?.text || 'No se pudo generar una respuesta.';
     
     assistantState.responseCache[cacheKey] = {
       response: result,
@@ -1438,11 +1431,14 @@ async function callGeminiChat(apiKey, systemPrompt, userMessage) {
     
     return result;
   } catch (error) {
-    console.error('Gemini API Error:', error);
-    if (error.message === 'Failed to fetch') {
-      throw new Error('Error de conexión. Verifica tu internet o si la API Key es válida.');
+    console.error('Gemini Chat Error:', error);
+    // FALLBACK: If the second key fails, try with the main key
+    const mainKey = localStorage.getItem(STORAGE.apiKey);
+    if (mainKey && apiKey !== mainKey) {
+      console.log('Trying fallback with main API Key...');
+      return callGeminiChat(mainKey, systemPrompt, userMessage);
     }
-    throw error;
+    throw new Error(error.message === 'Failed to fetch' ? 'Error de conexión o API Key inválida.' : error.message);
   }
 }
 
