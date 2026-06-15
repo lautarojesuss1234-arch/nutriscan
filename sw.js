@@ -1,10 +1,10 @@
-const APP_VERSION = '2026.06.09-micros';
+const APP_VERSION = '2026.06.14-nvidia-fix';
 const CACHE_NAME = `nutriscan-${APP_VERSION}`;
 const APP_SHELL = [
-  './index.html?v=20260609-micros',
-  './styles.css?v=20260609-micros',
-  './app.js?v=20260609-micros',
-  './manifest.json?v=20260609-micros',
+  './index.html?v=20260614-nvidia-fix',
+  './styles.css?v=20260614-nvidia-fix',
+  './app.js?v=20260614-nvidia-fix',
+  './manifest.json?v=20260614-nvidia-fix',
   './icons/icon.svg',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -21,7 +21,9 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
+      .then((keys) => Promise.all(
+        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
+      ))
       .then(() => self.clients.claim())
       .then(() => self.clients.matchAll({ type: 'window', includeUncontrolled: true }))
       .then((clients) => {
@@ -49,10 +51,10 @@ self.addEventListener('fetch', (event) => {
       fetch(event.request, { cache: 'no-store' })
         .then((response) => {
           const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put('./index.html?v=20260609-micros', copy));
+          caches.open(CACHE_NAME).then((cache) => cache.put('./index.html?v=20260614-nvidia-fix', copy));
           return response;
         })
-        .catch(() => caches.match('./index.html?v=20260609-micros'))
+        .catch(() => caches.match('./index.html?v=20260614-nvidia-fix'))
     );
     return;
   }
@@ -80,6 +82,6 @@ self.addEventListener('fetch', (event) => {
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
         return response;
       })
-      .catch(() => caches.match(event.request).then((cached) => cached || caches.match('./index.html?v=20260609-micros')))
+      .catch(() => caches.match(event.request).then((cached) => cached || caches.match('./index.html?v=20260614-nvidia-fix')))
   );
 });
