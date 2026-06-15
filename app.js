@@ -331,11 +331,11 @@ async function registerServiceWorker() {
     const flag = 'nutriscan_sw_reloaded_20260614_fix_redirect';
     if (sessionStorage.getItem(flag)) return;
     sessionStorage.setItem(flag, '1');
-    window.location.replace('./index.html?v=20260614-fix-efficiency');
+    window.location.replace('./index.html?v=20260614-fix-final-chat');
   };
 
   try {
-    const registration = await navigator.serviceWorker.register('./sw.js?v=20260614-fix-efficiency', {
+    const registration = await navigator.serviceWorker.register('./sw.js?v=20260614-fix-final-chat', {
       updateViaCache: 'none',
     });
 
@@ -350,7 +350,7 @@ async function registerServiceWorker() {
       const flag = 'nutriscan_sw_reloaded_20260614_fix_redirect';
       if (sessionStorage.getItem(flag)) return;
       sessionStorage.setItem(flag, '1');
-      window.location.replace('./index.html?v=20260614-fix-efficiency');
+      window.location.replace('./index.html?v=20260614-fix-final-chat');
     };
 
     let newWorker = null;
@@ -1122,14 +1122,8 @@ async function callGeminiAssistant(apiKey, userMessage) {
     const totalCals = Math.round(meals.reduce((sum, m) => sum + (m.calories || 0), 0));
     const totalProtein = Math.round(meals.reduce((sum, m) => sum + (m.protein_g || 0), 0));
     
-    if (meals.length <= 10) {
-      const mealList = meals.map(m => m.dish_name).join(', ');
-      context += `Hoy consumió ${totalCals} kcal (${totalProtein}g proteína) en estas comidas: ${mealList}. `;
-    } else {
-      // Optimización para >10 comidas: solo totales y las últimas 3 para ahorrar tokens
-      const last3 = meals.slice(-3).map(m => m.dish_name).join(', ');
-      context += `Hoy consumió un total de ${totalCals} kcal (${totalProtein}g proteína) en ${meals.length} comidas. Las últimas fueron: ${last3}. `;
-    }
+    const mealList = meals.map(m => m.dish_name).join(', ');
+    context += `Hoy consumió un total de ${totalCals} kcal (${totalProtein}g proteína) en ${meals.length} comidas: ${mealList}. `;
   }
   
   context += 'Responde en español, de forma concisa y práctica. ';
