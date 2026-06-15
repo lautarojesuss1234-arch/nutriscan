@@ -1243,11 +1243,11 @@ async function registerServiceWorker() {
     const flag = 'nutriscan_sw_reloaded_20260609_micros';
     if (sessionStorage.getItem(flag)) return;
     sessionStorage.setItem(flag, '1');
-    window.location.replace('./index.html?v=20260614-gemini-clon');
+    window.location.replace('./index.html?v=20260614-fix-chat');
   };
 
   try {
-    const registration = await navigator.serviceWorker.register('./sw.js?v=20260614-gemini-clon', {
+    const registration = await navigator.serviceWorker.register('./sw.js?v=20260614-fix-chat', {
       updateViaCache: 'none',
     });
 
