@@ -1243,11 +1243,11 @@ async function registerServiceWorker() {
     const flag = 'nutriscan_sw_reloaded_20260609_micros';
     if (sessionStorage.getItem(flag)) return;
     sessionStorage.setItem(flag, '1');
-    window.location.replace('./index.html?v=20260614-nvidia-fix');
+    window.location.replace('./index.html?v=20260614-gemini-final');
   };
 
   try {
-    const registration = await navigator.serviceWorker.register('./sw.js?v=20260614-nvidia-fix', {
+    const registration = await navigator.serviceWorker.register('./sw.js?v=20260614-gemini-final', {
       updateViaCache: 'none',
     });
 
@@ -1384,45 +1384,66 @@ async function callGeminiAssistant(apiKey, userMessage) {
 }
 
 async function callGeminiChat(apiKey, systemPrompt, userMessage) {
-  const cacheKey = 'gemini_' + hashString(systemPrompt + userMessage);
+  const cacheKey = 'gemini_chat_v2_' + hashString(systemPrompt + userMessage);
   const cached = assistantState.responseCache[cacheKey];
   if (cached && Date.now() - cached.timestamp < ASSISTANT_CONFIG.cacheExpiryMs) {
     return cached.response;
   }
 
+  // Google Gemini API expects a specific structure for the prompt
+  const fullPrompt = `${systemPrompt}\n\nPregunta del usuario: ${userMessage}`;
+  
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
   const payload = {
-    contents: [
-      { role: 'user', parts: [{ text: systemPrompt + "\n\nUsuario: " + userMessage }] }
-    ],
+    contents: [{
+      parts: [{ text: fullPrompt }]
+    }],
     generationConfig: {
       temperature: 0.7,
-      topP: 0.95,
-      topK: 64,
-      maxOutputTokens: 1024,
+      maxOutputTokens: 800,
     }
   };
 
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      mode: 'cors', // Explicitly set CORS
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload),
+    });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error?.message || `API Error: ${response.status}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorMessage = `Error ${response.status}`;
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.error?.message || errorMessage;
+      } catch (e) {}
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+    if (!data.candidates || data.candidates.length === 0) {
+      throw new Error('La IA no generó ninguna respuesta. Intenta con otra pregunta.');
+    }
+
+    const result = data.candidates[0].content.parts[0].text;
+    
+    assistantState.responseCache[cacheKey] = {
+      response: result,
+      timestamp: Date.now(),
+    };
+    
+    return result;
+  } catch (error) {
+    console.error('Gemini API Error:', error);
+    if (error.message === 'Failed to fetch') {
+      throw new Error('Error de conexión. Verifica tu internet o si la API Key es válida.');
+    }
+    throw error;
   }
-
-  const data = await response.json();
-  const result = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No se pudo generar una respuesta.';
-  
-  assistantState.responseCache[cacheKey] = {
-    response: result,
-    timestamp: Date.now(),
-  };
-  
-  return result;
 }
 
 function getAssistantApiKey() {
