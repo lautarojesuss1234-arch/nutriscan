@@ -363,21 +363,21 @@
             <div class="section-heading compact">
               <div>
                 <p class="eyebrow">Asistente inteligente</p>
-                <h2>Configura NVIDIA NIM</h2>
+                <h2>Configura Asistente (Gemini)</h2>
               </div>
             </div>
-            <p class="body-copy">Tu API Key de NVIDIA se guarda únicamente en el almacenamiento local bajo la clave <strong>nutriscan_nvidia_api_key</strong>. Esto habilita el Asistente nutricional con chat, generador de recetas y análisis avanzado usando modelos como Llama 3 o Mistral.</p>
-            <div id="nvidiaForm" class="settings-form">
-              <label for="nvidiaKeyInput">API Key de NVIDIA NIM</label>
+            <p class="body-copy">Usa una <strong>segunda API Key de Google</strong> para el Asistente. Esto evita saturar los límites de tu clave principal del escáner. Habilita el chat, recetas y análisis semanal.</p>
+            <div id="assistantKeyForm" class="settings-form">
+              <label for="assistantKeyInput">API Key de Google (para Chat)</label>
               <div class="secret-field">
-                <input id="nvidiaKeyInput" type="password" autocomplete="off" placeholder="Pega tu API Key de NVIDIA aquí" />
-                <button class="ghost-button" type="button" id="toggleNvidiaVisibility">Ver</button>
+                <input id="assistantKeyInput" type="password" autocomplete="off" placeholder="Pega tu segunda API Key de Google aquí" />
+                <button class="ghost-button" type="button" id="toggleAssistantVisibility">Ver</button>
               </div>
               <div class="action-row">
-                <button class="primary-button" type="button" id="saveNvidiaKeyButton">Guardar API Key</button>
-                <button class="secondary-button danger" type="button" id="deleteNvidiaKeyButton">Eliminar key</button>
+                <button class="primary-button" type="button" id="saveAssistantKeyButton">Guardar API Key</button>
+                <button class="secondary-button danger" type="button" id="deleteAssistantKeyButton">Eliminar key</button>
               </div>
-              <p class="microcopy" id="nvidiaFormStatus">Obtén tu API Key gratis en build.nvidia.com. La llamada al Asistente sale desde tu navegador.</p>
+              <p class="microcopy" id="assistantKeyFormStatus">Obtén otra clave gratis en Google AI Studio. Si dejas esto vacío, el asistente intentará usar la clave del escáner.</p>
             </div>
           </article>
 

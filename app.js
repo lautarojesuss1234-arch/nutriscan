@@ -1,6 +1,6 @@
 const STORAGE = {
   apiKey: 'nutriscan_api_key',
-  nvidiaApiKey: 'nutriscan_nvidia_api_key',
+  assistantApiKey: 'nutriscan_assistant_api_key',
   goals: 'nutriscan_goals',
   profile: 'nutriscan_profile',
   chatHistory: 'nutriscan_chat_history',
@@ -152,12 +152,12 @@ const elements = {
   chatForm: $('#chatForm'),
   chatInput: $('#chatInput'),
   sendChatButton: $('#sendChatButton'),
-  nvidiaForm: $('#nvidiaForm'),
-  nvidiaKeyInput: $('#nvidiaKeyInput'),
-  toggleNvidiaVisibility: $('#toggleNvidiaVisibility'),
-  deleteNvidiaKeyButton: $('#deleteNvidiaKeyButton'),
-  saveNvidiaKeyButton: $('#saveNvidiaKeyButton'),
-  nvidiaFormStatus: $('#nvidiaFormStatus'),
+  assistantKeyForm: $('#assistantKeyForm'),
+  assistantKeyInput: $('#assistantKeyInput'),
+  toggleAssistantVisibility: $('#toggleAssistantVisibility'),
+  deleteAssistantKeyButton: $('#deleteAssistantKeyButton'),
+  saveAssistantKeyButton: $('#saveAssistantKeyButton'),
+  assistantKeyFormStatus: $('#assistantKeyFormStatus'),
 };
 
 document.addEventListener('DOMContentLoaded', init);
@@ -912,22 +912,22 @@ function setupSettings() {
     showToast('API Key eliminada.');
   });
 
-  // NVIDIA NIM API Key Management
-  if (elements.nvidiaKeyInput) {
-    elements.nvidiaKeyInput.value = getNvidiaApiKey();
-    if (elements.saveNvidiaKeyButton) {
-      elements.saveNvidiaKeyButton.onclick = (e) => {
+  // Assistant Gemini API Key Management
+  if (elements.assistantKeyInput) {
+    elements.assistantKeyInput.value = getAssistantApiKey();
+    if (elements.saveAssistantKeyButton) {
+      elements.saveAssistantKeyButton.onclick = (e) => {
         if (e) { e.preventDefault(); e.stopPropagation(); }
-        const key = elements.nvidiaKeyInput.value.trim();
+        const key = elements.assistantKeyInput.value.trim();
         if (!key) {
-          showToast('Pega una API Key de NVIDIA antes de guardar.');
+          showToast('Pega una API Key de Google antes de guardar.');
           return false;
         }
         try {
-          localStorage.setItem(STORAGE.nvidiaApiKey, key);
-          elements.nvidiaFormStatus.textContent = 'API Key de NVIDIA guardada localmente.';
+          localStorage.setItem(STORAGE.assistantApiKey, key);
+          elements.assistantKeyFormStatus.textContent = 'API Key del Asistente guardada localmente.';
           refreshAssistantState();
-          showToast('API Key de NVIDIA guardada ✅');
+          showToast('API Key del Asistente guardada ✅');
         } catch (err) {
           console.error('Error saving to localStorage:', err);
           showToast('Error al guardar.');
@@ -935,17 +935,17 @@ function setupSettings() {
         return false;
       };
     }
-    elements.toggleNvidiaVisibility.addEventListener('click', () => {
-      const isPassword = elements.nvidiaKeyInput.type === 'password';
-      elements.nvidiaKeyInput.type = isPassword ? 'text' : 'password';
-      elements.toggleNvidiaVisibility.textContent = isPassword ? 'Ocultar' : 'Ver';
+    elements.toggleAssistantVisibility.addEventListener('click', () => {
+      const isPassword = elements.assistantKeyInput.type === 'password';
+      elements.assistantKeyInput.type = isPassword ? 'text' : 'password';
+      elements.toggleAssistantVisibility.textContent = isPassword ? 'Ocultar' : 'Ver';
     });
-    elements.deleteNvidiaKeyButton.addEventListener('click', () => {
-      localStorage.removeItem(STORAGE.nvidiaApiKey);
-      elements.nvidiaKeyInput.value = '';
-      elements.nvidiaFormStatus.textContent = 'API Key de NVIDIA eliminada de este navegador.';
+    elements.deleteAssistantKeyButton.addEventListener('click', () => {
+      localStorage.removeItem(STORAGE.assistantApiKey);
+      elements.assistantKeyInput.value = '';
+      elements.assistantKeyFormStatus.textContent = 'API Key del Asistente eliminada.';
       refreshAssistantState();
-      showToast('API Key de NVIDIA eliminada.');
+      showToast('API Key del Asistente eliminada.');
     });
   }
 
@@ -1299,9 +1299,9 @@ function setupAssistant() {
     const message = elements.chatInput.value.trim();
     if (!message) return;
 
-    const nvidiaKey = getNvidiaApiKey();
-    if (!nvidiaKey) {
-      showToast('Configura tu API Key de NVIDIA en Ajustes primero.');
+    const assistantKey = getAssistantApiKey();
+    if (!assistantKey) {
+      showToast('Configura tu API Key del Asistente en Ajustes primero.');
       activateTab('settings');
       return;
     }
@@ -1318,7 +1318,7 @@ function setupAssistant() {
     elements.chatHistory.scrollTop = elements.chatHistory.scrollHeight;
 
     try {
-      const response = await callNvidiaAssistant(nvidiaKey, message);
+      const response = await callGeminiAssistant(assistantKey, message);
       loadingMsg.remove();
       addChatMessage(response, 'assistant');
       saveChatMessage({ role: 'user', content: message });
@@ -1339,7 +1339,7 @@ function addChatMessage(content, role = 'assistant') {
   elements.chatHistory.scrollTop = elements.chatHistory.scrollHeight;
 }
 
-async function callNvidiaAssistant(apiKey, userMessage) {
+async function callGeminiAssistant(apiKey, userMessage) {
   const now = Date.now();
   if (now - assistantState.lastRequestTime < ASSISTANT_CONFIG.rateLimitMs) {
     throw new Error('Por favor espera un momento antes de enviar otro mensaje.');
@@ -1349,7 +1349,7 @@ async function callNvidiaAssistant(apiKey, userMessage) {
     assistantState.hourStartTime = now;
   }
   if (assistantState.requestsThisHour >= ASSISTANT_CONFIG.maxRequestsPerHour) {
-    throw new Error('Has alcanzado el limite de mensajes por hora. Intenta mas tarde.');
+    throw new Error('Has alcanzado el límite de mensajes por hora. Intenta más tarde.');
   }
   assistantState.lastRequestTime = now;
   assistantState.requestsThisHour += 1;
@@ -1367,7 +1367,7 @@ async function callNvidiaAssistant(apiKey, userMessage) {
     return generateWeeklySummary(apiKey, profile, goals);
   }
 
-  // Build context from profile and today's meals
+  // Build context
   let context = 'Eres un asistente nutricional experto, amable y motivador. ';
   if (profile) {
     context += `El usuario es ${profile.age} años, ${profile.sex}, ${profile.height}cm, ${profile.weight}kg, con objetivo de ${profile.goal}. `;
@@ -1376,28 +1376,36 @@ async function callNvidiaAssistant(apiKey, userMessage) {
   if (meals.length > 0) {
     const totalCals = meals.reduce((sum, m) => sum + (m.calories || 0), 0);
     const totalProtein = meals.reduce((sum, m) => sum + (m.protein || 0), 0);
-    context += `Hoy ha consumido aproximadamente ${Math.round(totalCals)} kcal (${Math.round(totalProtein)}g proteína) en ${meals.length} comida${meals.length === 1 ? '' : 's'}. `;
+    context += `Hoy ha consumido aproximadamente ${Math.round(totalCals)} kcal (${Math.round(totalProtein)}g proteína) en ${meals.length} comidas. `;
   }
   context += 'Responde en español, de forma concisa y práctica. Si pide recetas, sé específico. Si pide consejo, sé motivador pero realista.';
 
-  const endpoint = 'https://integrate.api.nvidia.com/v1/chat/completions';
+  return callGeminiChat(apiKey, context, userMessage);
+}
+
+async function callGeminiChat(apiKey, systemPrompt, userMessage) {
+  const cacheKey = 'gemini_' + hashString(systemPrompt + userMessage);
+  const cached = assistantState.responseCache[cacheKey];
+  if (cached && Date.now() - cached.timestamp < ASSISTANT_CONFIG.cacheExpiryMs) {
+    return cached.response;
+  }
+
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
   const payload = {
-    model: 'meta/llama-3.1-70b-instruct',
-    messages: [
-      { role: 'system', content: context },
-      { role: 'user', content: userMessage }
+    contents: [
+      { role: 'user', parts: [{ text: systemPrompt + "\n\nUsuario: " + userMessage }] }
     ],
-    temperature: 0.7,
-    top_p: 0.9,
-    max_tokens: 500,
+    generationConfig: {
+      temperature: 0.7,
+      topP: 0.95,
+      topK: 64,
+      maxOutputTokens: 1024,
+    }
   };
 
   const response = await fetch(endpoint, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
 
@@ -1407,19 +1415,26 @@ async function callNvidiaAssistant(apiKey, userMessage) {
   }
 
   const data = await response.json();
-  return data.choices?.[0]?.message?.content || 'No se pudo generar una respuesta.';
+  const result = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No se pudo generar una respuesta.';
+  
+  assistantState.responseCache[cacheKey] = {
+    response: result,
+    timestamp: Date.now(),
+  };
+  
+  return result;
 }
 
-function getNvidiaApiKey() {
-  return localStorage.getItem(STORAGE.nvidiaApiKey) || '';
+function getAssistantApiKey() {
+  return localStorage.getItem(STORAGE.assistantApiKey) || localStorage.getItem(STORAGE.apiKey) || '';
 }
 
-function hasNvidiaApiKey() {
-  return Boolean(getNvidiaApiKey());
+function hasAssistantApiKey() {
+  return Boolean(getAssistantApiKey());
 }
 
 function refreshAssistantState() {
-  const ready = hasNvidiaApiKey();
+  const ready = hasAssistantApiKey();
   elements.assistantStatus.textContent = ready ? 'Asistente listo' : 'Sin API';
   elements.assistantStatus.classList.toggle('ready', ready);
   elements.assistantLock.classList.toggle('hidden', ready);
@@ -1457,6 +1472,7 @@ function saveChatMessage(message) {
 
 async function generateRecipeFromMeals(apiKey, meals, profile, goals) {
   const mealNames = meals.map(m => m.dishName).join(', ') || 'ninguna aún';
+  const systemPrompt = 'Eres un experto chef nutricionista. Sugiere recetas saludables y fáciles.';
   const prompt = `Basándote en lo que el usuario ya comió hoy (${mealNames}), sugiere una receta para la próxima comida que:
 1. Complemente los macronutrientes faltantes (metas: ${goals.protein}g proteína, ${goals.carbs}g carbos, ${goals.fats}g grasas)
 2. Sea rápida y fácil de preparar
@@ -1465,7 +1481,7 @@ async function generateRecipeFromMeals(apiKey, meals, profile, goals) {
 
 Sé conciso y práctico.`;
 
-  return callNvidiaChat(apiKey, prompt);
+  return callGeminiChat(apiKey, systemPrompt, prompt);
 }
 
 async function generateWeeklySummary(apiKey, profile, goals) {
@@ -1487,6 +1503,7 @@ async function generateWeeklySummary(apiKey, profile, goals) {
   const avgCals = weekData.daysWithData > 0 ? Math.round(weekData.totalCals / weekData.daysWithData) : 0;
   const avgProtein = weekData.daysWithData > 0 ? Math.round(weekData.totalProtein / weekData.daysWithData) : 0;
 
+  const systemPrompt = 'Eres un analista de datos nutricionales motivador.';
   const prompt = `Analiza el progreso del usuario en la última semana:
 - Días registrados: ${weekData.daysWithData}/7
 - Promedio diario: ${avgCals} kcal, ${avgProtein}g proteína
@@ -1495,11 +1512,11 @@ async function generateWeeklySummary(apiKey, profile, goals) {
 
 Da un resumen motivador de 2-3 frases sobre su progreso, identifica fortalezas y sugiere una mejora concreta.`;
 
-  return callNvidiaChat(apiKey, prompt);
+  return callGeminiChat(apiKey, systemPrompt, prompt);
 }
 
-async function callNvidiaChat(apiKey, prompt) {
-  const cacheKey = 'nvidia_' + hashString(prompt);
+async function callGeminiChat(apiKey, systemPrompt, userMessage) {
+  const cacheKey = 'gemini_chat_' + hashString(systemPrompt + userMessage);
   const cached = assistantState.responseCache[cacheKey];
   if (cached && Date.now() - cached.timestamp < ASSISTANT_CONFIG.cacheExpiryMs) {
     return cached.response;
