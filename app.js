@@ -1532,49 +1532,7 @@ Da un resumen motivador de 2-3 frases sobre su progreso, identifica fortalezas y
   return callGeminiChat(apiKey, systemPrompt, prompt);
 }
 
-async function callGeminiChat(apiKey, systemPrompt, userMessage) {
-  const cacheKey = 'gemini_chat_' + hashString(systemPrompt + userMessage);
-  const cached = assistantState.responseCache[cacheKey];
-  if (cached && Date.now() - cached.timestamp < ASSISTANT_CONFIG.cacheExpiryMs) {
-    return cached.response;
-  }
 
-  const endpoint = 'https://integrate.api.nvidia.com/v1/chat/completions';
-  const payload = {
-    model: 'meta/llama-3.1-70b-instruct',
-    messages: [
-      { role: 'system', content: 'Eres un asistente nutricional experto, amable y motivador. Responde en español de forma concisa y práctica.' },
-      { role: 'user', content: prompt }
-    ],
-    temperature: 0.7,
-    top_p: 0.9,
-    max_tokens: 500,
-  };
-
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error?.message || `API Error: ${response.status}`);
-  }
-
-  const data = await response.json();
-  const result = data.choices?.[0]?.message?.content || 'No se pudo generar una respuesta.';
-  
-  assistantState.responseCache[cacheKey] = {
-    response: result,
-    timestamp: Date.now(),
-  };
-  
-  return result;
-}
 
 function hashString(str) {
   let hash = 0;
