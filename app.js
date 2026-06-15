@@ -915,22 +915,26 @@ function setupSettings() {
   // NVIDIA NIM API Key Management
   if (elements.nvidiaKeyInput) {
     elements.nvidiaKeyInput.value = getNvidiaApiKey();
-    elements.saveNvidiaKeyButton.addEventListener('click', () => {
-      const key = elements.nvidiaKeyInput.value.trim();
-      if (!key) {
-        showToast('Pega una API Key de NVIDIA antes de guardar.');
-        return;
-      }
-      try {
-        localStorage.setItem(STORAGE.nvidiaApiKey, key);
-        elements.nvidiaFormStatus.textContent = 'API Key de NVIDIA guardada localmente en este navegador.';
-        refreshAssistantState();
-        showToast('API Key de NVIDIA guardada.');
-      } catch (e) {
-        console.error('Error saving to localStorage:', e);
-        showToast('Error al guardar. Verifica los permisos de tu navegador.');
-      }
-    });
+    if (elements.saveNvidiaKeyButton) {
+      elements.saveNvidiaKeyButton.onclick = (e) => {
+        if (e) { e.preventDefault(); e.stopPropagation(); }
+        const key = elements.nvidiaKeyInput.value.trim();
+        if (!key) {
+          showToast('Pega una API Key de NVIDIA antes de guardar.');
+          return false;
+        }
+        try {
+          localStorage.setItem(STORAGE.nvidiaApiKey, key);
+          elements.nvidiaFormStatus.textContent = 'API Key de NVIDIA guardada localmente.';
+          refreshAssistantState();
+          showToast('API Key de NVIDIA guardada ✅');
+        } catch (err) {
+          console.error('Error saving to localStorage:', err);
+          showToast('Error al guardar.');
+        }
+        return false;
+      };
+    }
     elements.toggleNvidiaVisibility.addEventListener('click', () => {
       const isPassword = elements.nvidiaKeyInput.type === 'password';
       elements.nvidiaKeyInput.type = isPassword ? 'text' : 'password';
