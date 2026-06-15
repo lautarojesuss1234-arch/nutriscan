@@ -331,11 +331,11 @@ async function registerServiceWorker() {
     const flag = 'nutriscan_sw_reloaded_20260614_fix_redirect';
     if (sessionStorage.getItem(flag)) return;
     sessionStorage.setItem(flag, '1');
-    window.location.replace('./index.html?v=20260614-fix-redirect');
+    window.location.replace('./index.html?v=20260614-fix-format');
   };
 
   try {
-    const registration = await navigator.serviceWorker.register('./sw.js?v=20260614-fix-redirect', {
+    const registration = await navigator.serviceWorker.register('./sw.js?v=20260614-fix-format', {
       updateViaCache: 'none',
     });
 
@@ -350,7 +350,7 @@ async function registerServiceWorker() {
       const flag = 'nutriscan_sw_reloaded_20260614_fix_redirect';
       if (sessionStorage.getItem(flag)) return;
       sessionStorage.setItem(flag, '1');
-      window.location.replace('./index.html?v=20260614-fix-redirect');
+      window.location.replace('./index.html?v=20260614-fix-format');
     };
 
     let newWorker = null;
@@ -1059,10 +1059,29 @@ async function sendChatMessage() {
   }
 }
 
+function formatMarkdown(text) {
+  // Escapar HTML primero para seguridad
+  let html = escapeHtml(text);
+  
+  // Negritas: **texto** o __texto__
+  html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/__(.*?)__/g, '<strong>$1</strong>');
+  
+  // Listas: líneas que empiezan con * o -
+  html = html.replace(/^\s*[\*\-]\s+(.*)$/gm, '<li>$1</li>');
+  html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+  
+  // Saltos de línea
+  html = html.replace(/\n/g, '<br>');
+  
+  return html;
+}
+
 function addChatMessage(content, role = 'assistant') {
   const messageEl = document.createElement('div');
   messageEl.className = `chat-message ${role}`;
-  messageEl.innerHTML = `<p>${escapeHtml(content)}</p><small>${formatTime(new Date().toISOString())}</small>`;
+  const formattedContent = role === 'assistant' ? formatMarkdown(content) : `<p>${escapeHtml(content)}</p>`;
+  messageEl.innerHTML = `<div>${formattedContent}</div><small>${formatTime(new Date().toISOString())}</small>`;
   elements.chatHistory.appendChild(messageEl);
   elements.chatHistory.scrollTop = elements.chatHistory.scrollHeight;
 }
