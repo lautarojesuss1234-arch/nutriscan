@@ -331,11 +331,11 @@ async function registerServiceWorker() {
     const flag = 'nutriscan_sw_reloaded_20260614_fix_redirect';
     if (sessionStorage.getItem(flag)) return;
     sessionStorage.setItem(flag, '1');
-    window.location.replace('./index.html?v=20260614-fix-format');
+    window.location.replace('./index.html?v=20260614-fix-efficiency');
   };
 
   try {
-    const registration = await navigator.serviceWorker.register('./sw.js?v=20260614-fix-format', {
+    const registration = await navigator.serviceWorker.register('./sw.js?v=20260614-fix-efficiency', {
       updateViaCache: 'none',
     });
 
@@ -350,7 +350,7 @@ async function registerServiceWorker() {
       const flag = 'nutriscan_sw_reloaded_20260614_fix_redirect';
       if (sessionStorage.getItem(flag)) return;
       sessionStorage.setItem(flag, '1');
-      window.location.replace('./index.html?v=20260614-fix-format');
+      window.location.replace('./index.html?v=20260614-fix-efficiency');
     };
 
     let newWorker = null;
@@ -1119,11 +1119,34 @@ async function callGeminiAssistant(apiKey, userMessage) {
   }
   context += `Sus metas diarias son: ${goals.calories} kcal, ${goals.protein}g proteína, ${goals.carbs}g carbos, ${goals.fats}g grasas. `;
   if (meals.length > 0) {
-    const totalCals = meals.reduce((sum, m) => sum + (m.calories || 0), 0);
-    const totalProtein = meals.reduce((sum, m) => sum + (m.protein_g || 0), 0);
-    context += `Hoy ha consumido aproximadamente ${Math.round(totalCals)} kcal (${Math.round(totalProtein)}g proteína) en ${meals.length} comidas. `;
+    const totalCals = Math.round(meals.reduce((sum, m) => sum + (m.calories || 0), 0));
+    const totalProtein = Math.round(meals.reduce((sum, m) => sum + (m.protein_g || 0), 0));
+    
+    if (meals.length <= 10) {
+      const mealList = meals.map(m => m.dish_name).join(', ');
+      context += `Hoy consumió ${totalCals} kcal (${totalProtein}g proteína) en estas comidas: ${mealList}. `;
+    } else {
+      // Optimización para >10 comidas: solo totales y las últimas 3 para ahorrar tokens
+      const last3 = meals.slice(-3).map(m => m.dish_name).join(', ');
+      context += `Hoy consumió un total de ${totalCals} kcal (${totalProtein}g proteína) en ${meals.length} comidas. Las últimas fueron: ${last3}. `;
+    }
   }
-  context += 'Responde en español, de forma concisa y práctica. Si pide recetas, sé específico. Si pide consejo, sé motivador pero realista.';
+  
+  context += 'Responde en español, de forma concisa y práctica. ';
+  
+  // Añadir ventana deslizante del historial (últimos 5 mensajes)
+  try {
+    const history = JSON.parse(localStorage.getItem(STORAGE.chatHistory) || '[]');
+    if (history.length > 0) {
+      const recentHistory = history.slice(-5);
+      context += '\nHistorial reciente para contexto:\n';
+      recentHistory.forEach(msg => {
+        context += `${msg.role === 'user' ? 'Usuario' : 'Asistente'}: ${msg.content}\n`;
+      });
+    }
+  } catch (e) {
+    console.warn('Error al cargar historial para contexto:', e);
+  }
 
   return callGeminiChat(apiKey, context, userMessage);
 }

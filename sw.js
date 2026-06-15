@@ -1,10 +1,10 @@
-const APP_VERSION = '2026.06.14-fix-format';
+const APP_VERSION = '2026.06.14-fix-efficiency';
 const CACHE_NAME = `nutriscan-${APP_VERSION}`;
 const APP_SHELL = [
-  './index.html?v=20260614-fix-format',
-  './styles.css?v=20260614-fix-format',
-  './app.js?v=20260614-fix-format',
-  './manifest.json?v=20260614-fix-format',
+  './index.html?v=20260614-fix-efficiency',
+  './styles.css?v=20260614-fix-efficiency',
+  './app.js?v=20260614-fix-efficiency',
+  './manifest.json?v=20260614-fix-efficiency',
   './icons/icon.svg',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -51,10 +51,10 @@ self.addEventListener('fetch', (event) => {
       fetch(event.request, { cache: 'no-store' })
         .then((response) => {
           const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put('./index.html?v=20260614-fix-format', copy));
+          caches.open(CACHE_NAME).then((cache) => cache.put('./index.html?v=20260614-fix-efficiency', copy));
           return response;
         })
-        .catch(() => caches.match('./index.html?v=20260614-fix-format'))
+        .catch(() => caches.match('./index.html?v=20260614-fix-efficiency'))
     );
     return;
   }
@@ -82,6 +82,6 @@ self.addEventListener('fetch', (event) => {
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
         return response;
       })
-      .catch(() => caches.match(event.request).then((cached) => cached || caches.match('./index.html?v=20260614-fix-format')))
+      .catch(() => caches.match(event.request).then((cached) => cached || caches.match('./index.html?v=20260614-fix-efficiency')))
   );
 });
